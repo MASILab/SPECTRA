@@ -1,0 +1,122 @@
+import nibabel as nib
+import numpy as np
+from skimage import measure
+import pyvista as pv
+import os
+
+# -------------------------
+# 1. Setup output folder
+# -------------------------
+os.makedirs("output", exist_ok=True)
+
+# -------------------------
+# 2. Load segmentation file
+# -------------------------
+seg = nib.load("data/segmentation_file.nii.gz")
+seg_data = seg.get_fdata()
+
+print("Unique labels:", np.unique(seg_data))
+
+# -------------------------
+# 3. All labels
+# -------------------------
+structures = {
+    # Lungs
+    10: "Left Upper",
+    11: "Left Lower",
+    12: "Right Upper",
+    13: "Right Middle",
+    14: "Right Lower",
+
+    # Heart
+    51: "Heart",
+    53: "Pulmonary Vein",
+}
+
+# -------------------------
+# 4. RGB colors
+# -------------------------
+label_colors = {
+    # Lungs
+    10: [255, 182, 193],
+    11: [255, 105, 180],
+    12: [156, 229, 247],
+    13: [84, 170, 235],
+    14: [37, 106, 204],
+
+    # Heart
+    51: [255, 0, 0],
+    53: [102, 0, 102],
+}
+
+# -------------------------
+# 5. Create MultiBlock dataset
+# -------------------------
+multiblock = pv.MultiBlock()
+
+# -------------------------
+# 6. Build meshes
+# -------------------------
+for label, name in structures.items():
+
+    print(f"Processing {name} (label {label})")
+
+    mask = (seg_data == label).astype(np.uint8)
+
+    if np.sum(mask) == 0:
+        print(f"{name} is empty, skipping.")
+        continue
+
+    verts, faces, _, _ = measure.marching_cubes(mask, level=0.5)
+
+    faces_pv = np.hstack([
+        np.full((faces.shape[0], 1), 3),
+        faces
+    ]).astype(np.int64)
+
+    mesh = pv.PolyData(verts, faces_pv)
+
+    mesh.cell_data["label"] = np.full(mesh.n_cells, label)
+
+    color = np.array(label_colors[label], dtype=np.uint8)
+    mesh.cell_data["RGB"] = np.tile(color, (mesh.n_cells, 1))
+
+    multiblock[name] = mesh
+
+# -------------------------
+# 7. Save file
+# -------------------------
+output_file = "output/colored_lungs_heart.vtm"
+multiblock.save(output_file)
+
+print(f"Saved: {output_file}")
+
+# -------------------------
+# 8. INTERACTIVE VISUALIZATION
+# -------------------------
+plotter = pv.Plotter()
+plotter.background_color = "white"
+
+for name in multiblock.keys():
+
+    block = multiblock[name]
+
+    if block is None:
+        continue
+
+    # lungs transparent
+    if name in ["Left Upper", "Left Lower",
+                "Right Upper", "Right Middle", "Right Lower"]:
+        opacity = 0.25
+    else:
+        opacity = 1.0
+
+    plotter.add_mesh(
+        block,
+        scalars="RGB",
+        rgb=True,
+        opacity=opacity
+    )
+
+plotter.add_axes()
+plotter.show()
