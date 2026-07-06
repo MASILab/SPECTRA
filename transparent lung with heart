@@ -4,22 +4,13 @@ from skimage import measure
 import pyvista as pv
 import os
 
-# -------------------------
-# 1. Setup output folder
-# -------------------------
 os.makedirs("output", exist_ok=True)
 
-# -------------------------
-# 2. Load segmentation file
-# -------------------------
 seg = nib.load("data/segmentation_file.nii.gz")
 seg_data = seg.get_fdata()
 
 print("Unique labels:", np.unique(seg_data))
 
-# -------------------------
-# 3. All labels
-# -------------------------
 structures = {
     # Lungs
     10: "Left Upper",
@@ -33,9 +24,6 @@ structures = {
     53: "Pulmonary Vein",
 }
 
-# -------------------------
-# 4. RGB colors
-# -------------------------
 label_colors = {
     # Lungs
     10: [255, 182, 193],
@@ -49,14 +37,8 @@ label_colors = {
     53: [102, 0, 102],
 }
 
-# -------------------------
-# 5. Create MultiBlock dataset
-# -------------------------
 multiblock = pv.MultiBlock()
 
-# -------------------------
-# 6. Build meshes
-# -------------------------
 for label, name in structures.items():
 
     print(f"Processing {name} (label {label})")
@@ -83,17 +65,11 @@ for label, name in structures.items():
 
     multiblock[name] = mesh
 
-# -------------------------
-# 7. Save file
-# -------------------------
 output_file = "output/colored_lungs_heart.vtm"
 multiblock.save(output_file)
 
 print(f"Saved: {output_file}")
 
-# -------------------------
-# 8. INTERACTIVE VISUALIZATION
-# -------------------------
 plotter = pv.Plotter()
 plotter.background_color = "white"
 
@@ -104,7 +80,6 @@ for name in multiblock.keys():
     if block is None:
         continue
 
-    # lungs transparent
     if name in ["Left Upper", "Left Lower",
                 "Right Upper", "Right Middle", "Right Lower"]:
         opacity = 0.25
