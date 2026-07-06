@@ -4,22 +4,13 @@ from skimage import measure
 import pyvista as pv
 import os
 
-# -------------------------
-# 1. Setup output folder
-# -------------------------
 os.makedirs("output", exist_ok=True)
 
-# -------------------------
-# 2. Load segmentation file
-# -------------------------
 seg = nib.load("data/segmentation_file.nii.gz")
 seg_data = seg.get_fdata()
 
 print("Unique labels:", np.unique(seg_data))
 
-# -------------------------
-# 3. Lung lobe labels and names
-# -------------------------
 lung_labels = {
     10: "Left Upper",
     11: "Left Lower",
@@ -28,9 +19,6 @@ lung_labels = {
     14: "Right Lower",
 }
 
-# -------------------------
-# 4. Fixed RGB color map (cross-program safe)
-# -------------------------
 label_colors = {
     10: [255, 182, 193],  # light pink
     11: [255, 105, 180],  # hot pink
@@ -39,14 +27,8 @@ label_colors = {
     14: [37, 106, 204],   # dark blue
 }
 
-# -------------------------
-# 5. Create MultiBlock dataset
-# -------------------------
 multiblock = pv.MultiBlock()
 
-# -------------------------
-# 6. Build meshes
-# -------------------------
 for label, name in lung_labels.items():
     print(f"Processing {name} (label {label})")
 
@@ -65,28 +47,18 @@ for label, name in lung_labels.items():
 
     mesh = pv.PolyData(verts, faces_pv)
 
-    # Store label (optional)
     mesh.cell_data["label"] = np.full(mesh.n_cells, label)
 
-    # -------------------------
-    # Add RGB colors
-    # -------------------------
     color = np.array(label_colors[label], dtype=np.uint8)
     mesh.cell_data["RGB"] = np.tile(color, (mesh.n_cells, 1))
 
     multiblock[name] = mesh
 
-# -------------------------
-# 7. Save file (optional but useful)
-# -------------------------
 output_file = "output/colored_lungs.vtm"
 multiblock.save(output_file)
 
 print(f"Saved: {output_file}")
 
-# -------------------------
-# 8. INTERACTIVE PLOTTING WINDOW
-# -------------------------
 print("Opening interactive PyVista window...")
 plotter = pv.Plotter()
 plotter.background_color = "white"
