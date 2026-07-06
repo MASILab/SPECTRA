@@ -4,43 +4,25 @@ from skimage import measure
 import pyvista as pv
 import os
 
-# -------------------------
-# 1. Setup output folder
-# -------------------------
 os.makedirs("output", exist_ok=True)
 
-# -------------------------
-# 2. Load segmentation file
-# -------------------------
 seg = nib.load("data/segmentation_file.nii.gz")
 seg_data = seg.get_fdata()
 
 print("Unique labels:", np.unique(seg_data))
 
-# -------------------------
-# 3. Heart structure labels
-# -------------------------
 heart_labels = {
     51: "Heart",
     53: "Pulmonary Vein",
 }
 
-# -------------------------
-# 4. RGB color map
-# -------------------------
 label_colors = {
     51: [255, 0, 0],      # Heart
     53: [102, 0, 102],    # Pulmonary Vein
 }
 
-# -------------------------
-# 5. Create MultiBlock dataset
-# -------------------------
 multiblock = pv.MultiBlock()
 
-# -------------------------
-# 6. Build meshes
-# -------------------------
 for label, name in heart_labels.items():
 
     print(f"Processing {name} (label {label})")
@@ -67,17 +49,11 @@ for label, name in heart_labels.items():
 
     multiblock[name] = mesh
 
-# -------------------------
-# 7. Save
-# -------------------------
 output_file = "output/colored_heart.vtm"
 multiblock.save(output_file)
 
 print(f"Saved: {output_file}")
 
-# -------------------------
-# 8. Display
-# -------------------------
 plotter = pv.Plotter()
 plotter.background_color = "white"
 
