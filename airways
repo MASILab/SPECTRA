@@ -2,25 +2,18 @@ import nibabel as nib
 import pyvista as pv
 import numpy as np
 
-# Load the NIfTI file
 img = nib.load("data/output.nii.gz")
 
-# Get the image data as a NumPy array
 data = img.get_fdata()
 
-# Create a PyVista ImageData object
 grid = pv.ImageData()
 
-# Set the dimensions
 grid.dimensions = np.array(data.shape)
 
-# Set voxel spacing (optional but recommended)
 grid.spacing = img.header.get_zooms()[:3]
 
-# Add the data to the grid
 grid.point_data["values"] = data.flatten(order="F")
 
-# Visualize
 plotter = pv.Plotter()
 plotter.add_volume(grid, cmap="gray")
 plotter.show()
