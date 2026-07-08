@@ -1,0 +1,67 @@
+import pyvista as pv
+
+
+input_file = "output/colored_lungs_heart.vtm"
+output_file = "output/colored_lungs_heart_smoothed.vtm"
+
+
+model = pv.read(input_file)
+
+smoothed_model = pv.MultiBlock()
+
+
+for i in range(model.n_blocks):
+
+    block = model[i]
+
+    if block is not None:
+
+        print("Processing block:", i)
+
+        smoothed_block = block.smooth(
+            n_iter=200,
+            relaxation_factor=0.05
+        )
+
+
+        for name in block.point_data.keys():
+            smoothed_block.point_data[name] = block.point_data[name]
+
+
+        for name in block.cell_data.keys():
+            smoothed_block.cell_data[name] = block.cell_data[name]
+
+
+        smoothed_model.append(smoothed_block)
+
+
+smoothed_model.save(output_file)
+
+print("Saved:", output_file)
+
+
+plotter = pv.Plotter()
+
+for name in smoothed_model.keys():
+
+    block = smoothed_model[name]
+
+    if block is None:
+        continue
+
+    label = int(block.cell_data["label"][0])
+
+    if label in [10, 11, 12, 13, 14]:
+        opacity = 0.25
+    else:
+        opacity = 1.0
+
+    plotter.add_mesh(
+        block,
+        scalars="RGB",
+        rgb=True,
+        opacity=opacity,
+        smooth_shading=True
+    )
+
+plotter.show()
