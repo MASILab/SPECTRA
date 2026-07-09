@@ -1,0 +1,58 @@
+import pyvista as pv
+
+
+input_file = "output/colored_heart.vtm"
+output_file = "output/heart_with_lights.vtm"
+
+
+model = pv.read(input_file)
+
+smoothed_model = pv.MultiBlock()
+
+
+for i in range(model.n_blocks):
+
+    block = model[i]
+
+    if block is not None:
+
+        print("Processing block:", i)
+
+        smoothed_block = block.smooth(
+            n_iter=200,
+            relaxation_factor=0.05
+        )
+
+
+        for name in block.point_data.keys():
+            smoothed_block.point_data[name] = block.point_data[name]
+
+
+        for name in block.cell_data.keys():
+            smoothed_block.cell_data[name] = block.cell_data[name]
+
+
+        smoothed_model.append(smoothed_block)
+
+
+smoothed_model.save(output_file)
+
+print("Saved:", output_file)
+
+
+plotter = pv.Plotter(
+    lighting="none",
+    window_size=(1000, 1000)
+)
+
+plotter.add_mesh(
+    smoothed_model,
+    scalars="RGB",
+    rgb=True,
+    smooth_shading=True
+)
+
+light = pv.Light(light_type="headlight")
+plotter.add_light(light)
+
+plotter.show()
