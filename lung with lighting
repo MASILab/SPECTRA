@@ -1,7 +1,7 @@
 import pyvista as pv
 
 input_file = "output/colored_lungs.vtm"
-output_file = "output/3_lights.vtm"
+output_file = "output/lung_with_lighting.vtm"
 
 model = pv.read(input_file)
 
