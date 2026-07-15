@@ -1,0 +1,140 @@
+import os
+import numpy as np
+import pyvista as pv
+
+input_file = "output/thorax.vtm"
+output_file = "output/thorax_spin.vtm"
+
+model = pv.read(input_file)
+
+print("Original blocks:", list(model.keys()))
+
+smoothed_model = pv.MultiBlock()
+
+for i, name in enumerate(model.keys()):
+
+    block = model[i]
+
+    if block is None:
+        continue
+
+    print(f"Processing {name}")
+
+    smoothed_block = block.smooth(
+        n_iter=200,
+        relaxation_factor=0.05
+    )
+
+    for array_name in block.point_data.keys():
+        smoothed_block.point_data[array_name] = block.point_data[array_name]
+
+    for array_name in block.cell_data.keys():
+        smoothed_block.cell_data[array_name] = block.cell_data[array_name]
+
+    smoothed_model[name] = smoothed_block
+
+smoothed_model.save(output_file)
+
+print("Saved:", output_file)
+
+plotter = pv.Plotter(
+    lighting="none",
+    window_size=(1000, 1000),
+    off_screen=True
+)
+
+plotter.background_color = "white"
+
+for i in range(smoothed_model.n_blocks):
+
+    name = smoothed_model.get_block_name(i)
+    block = smoothed_model[i]
+
+    if block is None:
+        continue
+
+    print("Rendering:", name)
+
+    if name in [
+        "Left Upper",
+        "Left Lower",
+        "Right Upper",
+        "Right Middle",
+        "Right Lower"
+    ]:
+        opacity = 0.1
+
+    elif name == "Heart":
+        opacity = 0.8
+
+    elif name == "Pulmonary Vein":
+        opacity = 0.8
+
+    elif name == "Airways":
+        opacity = 0.3
+
+    elif name == "Airway Wall":
+        opacity = 1.0
+
+    else:
+        opacity = 1.0
+
+    plotter.add_mesh(
+        block,
+        scalars="RGB",
+        rgb=True,
+        opacity=opacity,
+        smooth_shading=True
+    )
+
+light = pv.Light(light_type="headlight")
+plotter.add_light(light)
+
+plotter.show(auto_close=False)
+
+bounds = smoothed_model.bounds
+
+center = np.array([
+    (bounds[0] + bounds[1]) / 2,
+    (bounds[2] + bounds[3]) / 2,
+    (bounds[4] + bounds[5]) / 2
+])
+
+radius = max(
+    bounds[1] - bounds[0],
+    bounds[3] - bounds[2]
+) * 3
+
+elevation = np.radians(30)
+
+n_frames = 250
+fps = 24
+
+frame_dir = "thorax_frames"
+os.makedirs(frame_dir, exist_ok=True)
+
+start_angle = 270
+
+for i, azimuth_deg in enumerate(
+    np.linspace(start_angle, start_angle + 360, n_frames, endpoint=False)
+):
+
+    azimuth = np.radians(azimuth_deg)
+
+    x = center[0] + radius * np.cos(azimuth) * np.cos(elevation)
+    y = center[1] + radius * np.sin(azimuth) * np.cos(elevation)
+    z = center[2] + radius * np.sin(elevation)
+
+    plotter.camera.position = (x, y, z)
+    plotter.camera.focal_point = center
+    plotter.camera.up = (0, 0, 1)
+
+    plotter.render()
+
+    plotter.screenshot(
+        os.path.join(frame_dir, f"frame_{i:04d}.png")
+    )
+
+plotter.close()
+
+print(f"Saved frames to {frame_dir}/")
