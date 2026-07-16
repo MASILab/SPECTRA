@@ -1,0 +1,134 @@
+import os
+import numpy as np
+import pyvista as pv
+
+input_file = "output/colored_lungs.vtm"
+output_file = "output/chat_lung_spin.vtm"
+
+model = pv.read(input_file)
+
+smoothed_model = pv.MultiBlock()
+
+for i in range(model.n_blocks):
+
+    block = model[i]
+
+    if block is not None:
+
+        print("Processing block:", i)
+
+        smoothed_block = block.smooth(
+            n_iter=200,
+            relaxation_factor=0.05
+        )
+
+        for name in block.point_data.keys():
+            smoothed_block.point_data[name] = block.point_data[name]
+
+        for name in block.cell_data.keys():
+            smoothed_block.cell_data[name] = block.cell_data[name]
+
+        smoothed_model.append(smoothed_block)
+
+
+smoothed_model.save(output_file)
+
+print("Saved:", output_file)
+
+
+plotter = pv.Plotter(
+    lighting="none",
+    window_size=(1000, 1000),
+    off_screen=True
+)
+
+lung_labels = {
+    10: "Left Upper",
+    11: "Left Lower",
+    12: "Right Upper",
+    13: "Right Middle",
+    14: "Right Lower",
+}
+
+label_colors = {
+    10: [135, 206, 235],  # sky blue
+    11: [110, 180, 220],  # steel blue
+    12: [125, 200, 240],  # light sky blue
+    13: [90, 185, 225],   # cerulean
+    14: [70, 160, 220],   # deep sky blue
+}
+
+for i, block in enumerate(smoothed_model):
+
+    if block is None:
+        continue
+
+    label = 10 + i
+
+    if label in label_colors:
+
+        rgb = np.tile(
+            np.array(label_colors[label], dtype=np.uint8),
+            (block.n_points, 1)
+        )
+
+        block.point_data["RGB"] = rgb
+
+plotter.add_mesh(
+    smoothed_model,
+    scalars="RGB",
+    rgb=True,
+    smooth_shading=True
+)
+
+light = pv.Light(light_type="headlight")
+plotter.add_light(light)
+
+plotter.show(auto_close=False)
+
+bounds = smoothed_model.bounds
+
+center = np.array([
+    (bounds[0] + bounds[1]) / 2,
+    (bounds[2] + bounds[3]) / 2,
+    (bounds[4] + bounds[5]) / 2
+])
+
+radius = max(
+    bounds[1] - bounds[0],
+    bounds[3] - bounds[2]
+) * 3
+
+elevation = np.radians(30)
+
+n_frames = 250
+fps = 24
+
+frame_dir = "chat_lung_frames"
+os.makedirs(frame_dir, exist_ok=True)
+
+start_angle = 270
+
+for i, azimuth_deg in enumerate(
+    np.linspace(start_angle, start_angle + 360, n_frames, endpoint=False)
+):
+
+    azimuth = np.radians(azimuth_deg)
+
+    x = center[0] + radius * np.cos(azimuth) * np.cos(elevation)
+    y = center[1] + radius * np.sin(azimuth) * np.cos(elevation)
+    z = center[2] + radius * np.sin(elevation)
+
+    plotter.camera.position = (x, y, z)
+    plotter.camera.focal_point = center
+    plotter.camera.up = (0, 0, 1)
+
+    plotter.render()
+
+    plotter.screenshot(
+        os.path.join(frame_dir, f"frame_{i:04d}.png")
+    )
+
+plotter.close()
+
+print(f"Saved frames to {frame_dir}/")
