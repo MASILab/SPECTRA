@@ -1,46 +1,18 @@
 import os
 import numpy as np
 import pyvista as pv
+import SimpleITK as sitk
 
-input_file = "output/colored_lungs.vtm"
-output_file = "output/chat_lung_spin.vtm"
+ct_file = "data/ct_scan.nii.gz"
+seg_file = "data/segmentation_file.nii.gz"
 
-model = pv.read(input_file)
+ct = sitk.ReadImage(ct_file)
+seg = sitk.ReadImage(seg_file)
 
-smoothed_model = pv.MultiBlock()
+seg_array = sitk.GetArrayFromImage(seg)
 
-for i in range(model.n_blocks):
-
-    block = model[i]
-
-    if block is not None:
-
-        print("Processing block:", i)
-
-        smoothed_block = block.smooth(
-            n_iter=200,
-            relaxation_factor=0.05
-        )
-
-        for name in block.point_data.keys():
-            smoothed_block.point_data[name] = block.point_data[name]
-
-        for name in block.cell_data.keys():
-            smoothed_block.cell_data[name] = block.cell_data[name]
-
-        smoothed_model.append(smoothed_block)
-
-
-smoothed_model.save(output_file)
-
-print("Saved:", output_file)
-
-
-plotter = pv.Plotter(
-    lighting="none",
-    window_size=(1000, 1000),
-    off_screen=True
-)
+spacing = seg.GetSpacing()
+origin = seg.GetOrigin()
 
 lung_labels = {
     10: "Left Upper",
@@ -58,52 +30,86 @@ label_colors = {
     14: [70, 160, 220],   # deep sky blue
 }
 
-for i, block in enumerate(smoothed_model):
+labels_to_keep = list(lung_labels.keys())
 
-    if block is None:
+smoothed_model = pv.MultiBlock()
+
+for label in labels_to_keep:
+
+    print(f"Processing label {label}: {lung_labels[label]}")
+
+    mask = (seg_array == label).astype(np.uint8)
+
+    if mask.sum() == 0:
+        print("  Label not found.")
         continue
 
-    label = 10 + i
+    mask = np.transpose(mask, (2, 1, 0))
 
-    if label in label_colors:
+    grid = pv.ImageData()
 
-        rgb = np.tile(
-            np.array(label_colors[label], dtype=np.uint8),
-            (block.n_points, 1)
-        )
+    grid.dimensions = np.array(mask.shape) + 1
+    grid.spacing = spacing
+    grid.origin = origin
 
-        block.point_data["RGB"] = rgb
+    grid.cell_data["mask"] = mask.ravel(order="F")
+
+    grid = grid.cell_data_to_point_data()
+
+    surface = grid.contour(
+        isosurfaces=[0.5],
+        scalars="mask",
+    )
+
+    if surface.n_points == 0:
+        continue
+
+    surface = surface.smooth(
+        n_iter=200,
+        relaxation_factor=0.05,
+    )
+
+    rgb = np.tile(
+        np.array(label_colors[label], dtype=np.uint8),
+        (surface.n_points, 1),
+    )
+
+    surface.point_data["RGB"] = rgb
+
+    smoothed_model.append(surface)
+
+plotter = pv.Plotter(
+    lighting="none",
+    window_size=(1000, 1000),
+    off_screen=True,
+)
 
 plotter.add_mesh(
     smoothed_model,
     scalars="RGB",
     rgb=True,
-    smooth_shading=True
+    smooth_shading=True,
 )
 
 light = pv.Light(light_type="headlight")
 plotter.add_light(light)
-
-plotter.show(auto_close=False)
 
 bounds = smoothed_model.bounds
 
 center = np.array([
     (bounds[0] + bounds[1]) / 2,
     (bounds[2] + bounds[3]) / 2,
-    (bounds[4] + bounds[5]) / 2
+    (bounds[4] + bounds[5]) / 2,
 ])
 
 radius = max(
     bounds[1] - bounds[0],
-    bounds[3] - bounds[2]
+    bounds[3] - bounds[2],
 ) * 3
 
 elevation = np.radians(30)
 
 n_frames = 250
-fps = 24
-
 frame_dir = "chat_lung_frames"
 os.makedirs(frame_dir, exist_ok=True)
 
