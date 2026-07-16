@@ -1,0 +1,209 @@
+import os
+import numpy as np
+import pyvista as pv
+import SimpleITK as sitk
+
+ct_file = "data/ct_scan.nii.gz"
+seg_file = "data/segmentation_file.nii.gz"
+
+ct = sitk.ReadImage(ct_file)
+seg = sitk.ReadImage(seg_file)
+
+seg_array = sitk.GetArrayFromImage(seg)
+
+spacing = seg.GetSpacing()
+origin = seg.GetOrigin()
+
+bone_labels = {
+    32: "vertebrae_T12",
+    33: "vertebrae_T11",
+    34: "vertebrae_T10",
+    35: "vertebrae_T9",
+    36: "vertebrae_T8",
+    37: "vertebrae_T7",
+    38: "vertebrae_T6",
+    39: "vertebrae_T5",
+    40: "vertebrae_T4",
+    41: "vertebrae_T3",
+    42: "vertebrae_T2",
+    43: "vertebrae_T1",
+    92: "rib_left_1",
+    93: "rib_left_2",
+    94: "rib_left_3",
+    95: "rib_left_4",
+    96: "rib_left_5",
+    97: "rib_left_6",
+    98: "rib_left_7",
+    99: "rib_left_8",
+    100: "rib_left_9",
+    101: "rib_left_10",
+    102: "rib_left_11",
+    103: "rib_left_12",
+    104: "rib_right_1",
+    105: "rib_right_2",
+    106: "rib_right_3",
+    107: "rib_right_4",
+    108: "rib_right_5",
+    109: "rib_right_6",
+    110: "rib_right_7",
+    111: "rib_right_8",
+    112: "rib_right_9",
+    113: "rib_right_10",
+    114: "rib_right_11",
+    115: "rib_right_12",
+    116: "sternum",
+    117: "costal_cartilages"
+}
+
+label_colors = {
+    32: [200, 185, 138], # warm sandstone bone
+    33: [200, 185, 138],
+    34: [200, 185, 138],
+    35: [200, 185, 138],
+    36: [200, 185, 138],
+    37: [200, 185, 138],
+    38: [200, 185, 138],
+    39: [200, 185, 138],
+    40: [200, 185, 138],
+    41: [200, 185, 138],
+    42: [200, 185, 138],
+    43: [200, 185, 138],
+
+    92:  [222, 205, 170], # bone tan
+    93:  [222, 205, 170],
+    94:  [222, 205, 170],
+    95:  [222, 205, 170],
+    96:  [222, 205, 170],
+    97:  [222, 205, 170],
+    98:  [222, 205, 170],
+    99:  [222, 205, 170],
+    100: [222, 205, 170],
+    101: [222, 205, 170],
+    102: [222, 205, 170],
+    103: [222, 205, 170],
+    104: [222, 205, 170],
+    105: [222, 205, 170],
+    106: [222, 205, 170],
+    107: [222, 205, 170],
+    108: [222, 205, 170],
+    109: [222, 205, 170],
+    110: [222, 205, 170],
+    111: [222, 205, 170],
+    112: [222, 205, 170],
+    113: [222, 205, 170],
+    114: [222, 205, 170],
+    115: [222, 205, 170],
+
+    116: [240, 235, 220], # ivory
+
+    117: [190, 240, 240], # pale cyan
+}
+
+labels_to_keep = list(bone_labels.keys())
+
+smoothed_model = pv.MultiBlock()
+
+for label in labels_to_keep:
+
+    print(f"Processing label {label}: {bone_labels[label]}")
+
+    mask = (seg_array == label).astype(np.uint8)
+
+    if mask.sum() == 0:
+        print("  Label not found.")
+        continue
+
+    mask = np.transpose(mask, (2, 1, 0))
+
+    grid = pv.ImageData()
+
+    grid.dimensions = np.array(mask.shape) + 1
+    grid.spacing = spacing
+    grid.origin = origin
+
+    grid.cell_data["mask"] = mask.ravel(order="F")
+
+    grid = grid.cell_data_to_point_data()
+
+    surface = grid.contour(
+        isosurfaces=[0.5],
+        scalars="mask",
+    )
+
+    if surface.n_points == 0:
+        continue
+
+    surface = surface.smooth(
+        n_iter=200,
+        relaxation_factor=0.05,
+    )
+
+    rgb = np.tile(
+        np.array(label_colors[label], dtype=np.uint8),
+        (surface.n_points, 1),
+    )
+
+    surface.point_data["RGB"] = rgb
+
+    smoothed_model.append(surface)
+
+plotter = pv.Plotter(
+    lighting="none",
+    window_size=(1000, 1000),
+    off_screen=True,
+)
+
+plotter.add_mesh(
+    smoothed_model,
+    scalars="RGB",
+    rgb=True,
+    smooth_shading=True,
+)
+
+light = pv.Light(light_type="headlight")
+plotter.add_light(light)
+
+bounds = smoothed_model.bounds
+
+center = np.array([
+    (bounds[0] + bounds[1]) / 2,
+    (bounds[2] + bounds[3]) / 2,
+    (bounds[4] + bounds[5]) / 2,
+])
+
+radius = max(
+    bounds[1] - bounds[0],
+    bounds[3] - bounds[2],
+) * 3
+
+elevation = np.radians(30)
+
+n_frames = 250
+frame_dir = "bone_frames"
+os.makedirs(frame_dir, exist_ok=True)
+
+start_angle = 90
+
+for i, azimuth_deg in enumerate(
+    np.linspace(start_angle, start_angle + 360, n_frames, endpoint=False)
+):
+
+    azimuth = np.radians(azimuth_deg)
+
+    x = center[0] + radius * np.cos(azimuth) * np.cos(elevation)
+    y = center[1] + radius * np.sin(azimuth) * np.cos(elevation)
+    z = center[2] + radius * np.sin(elevation)
+
+    plotter.camera.position = (x, y, z)
+    plotter.camera.focal_point = center
+    plotter.camera.up = (0, 0, 1)
+
+    plotter.render()
+
+    plotter.screenshot(
+        os.path.join(frame_dir, f"frame_{i:04d}.png")
+    )
+
+plotter.close()
+
+print(f"Saved frames to {frame_dir}/")
