@@ -192,7 +192,6 @@ os.makedirs(frame_dir, exist_ok=True)
 n_frames = 250
 elevation = np.radians(30)
 
-start_angle = 90
 
 for i, angle in enumerate(
     np.linspace(0,360,n_frames,endpoint=False) + 270
