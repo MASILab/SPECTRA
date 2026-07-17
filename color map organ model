@@ -1,0 +1,218 @@
+import os
+import numpy as np
+import pyvista as pv
+import SimpleITK as sitk
+
+ct_file = "data/ct_scan.nii.gz"
+
+vessel_file = "data/vessels.nii.gz"
+seg_file = "data/segmentation_file.nii.gz"
+
+
+vessel_img = sitk.ReadImage(vessel_file)
+seg_img = sitk.ReadImage(seg_file)
+
+vessel_array = sitk.GetArrayFromImage(vessel_img)
+seg_array = sitk.GetArrayFromImage(seg_img)
+
+spacing = vessel_img.GetSpacing()
+origin = vessel_img.GetOrigin()
+
+organ_labels = {
+
+    (vessel_file, 13): "lung_upper_lobe_left",
+    (vessel_file, 14): "lung_lower_lobe_left",
+    (vessel_file, 15): "lung_upper_lobe_right",
+    (vessel_file, 16): "lung_middle_lobe_right",
+    (vessel_file, 17): "lung_lower_lobe_right",
+
+    (vessel_file, 42): "esophagus",
+
+    (vessel_file, 43): "trachea",
+
+    (vessel_file, 44): "heart_myocardium",
+    (vessel_file, 45): "heart_atrium_left",
+    (vessel_file, 46): "heart_ventricle_left",
+    (vessel_file, 47): "heart_atrium_right",
+    (vessel_file, 48): "heart_ventricle_right",
+
+    (seg_file, 17): "thyroid_gland",
+}
+
+
+colors = {
+
+    "lung_upper_lobe_left": [135, 206, 235],
+    "lung_lower_lobe_left": [110, 180, 220],
+    "lung_upper_lobe_right": [125, 200, 240],
+    "lung_middle_lobe_right": [90, 185, 225],
+    "lung_lower_lobe_right": [70, 160, 220],
+
+    "esophagus": [135, 80, 170],
+
+    "trachea": [0, 190, 210],
+
+    "heart_myocardium": [180, 30, 45],
+    "heart_atrium_left": [165, 55, 80],
+    "heart_ventricle_left": [150, 15, 35],
+    "heart_atrium_right": [195, 65, 85],
+    "heart_ventricle_right": [205, 45, 60],
+
+    "thyroid_gland": [210, 90, 170],
+}
+
+
+models = pv.MultiBlock()
+
+
+for (file, label), name in organ_labels.items():
+
+    print(f"Processing {name}")
+
+    if file == vessel_file:
+        array = vessel_array
+    else:
+        array = seg_array
+
+
+    mask = (array == label).astype(np.uint8)
+
+
+    if mask.sum() == 0:
+        print("  missing")
+        continue
+
+
+    mask = np.transpose(mask, (2,1,0))
+
+
+    grid = pv.ImageData()
+
+    grid.dimensions = np.array(mask.shape) + 1
+    grid.spacing = spacing
+    grid.origin = origin
+
+
+    grid.cell_data["mask"] = mask.ravel(order="F")
+
+    grid = grid.cell_data_to_point_data()
+
+
+    surface = grid.contour(
+        isosurfaces=[0.5],
+        scalars="mask"
+    )
+
+
+    if surface.n_points == 0:
+        continue
+
+
+    surface = surface.smooth(
+        n_iter=200,
+        relaxation_factor=0.05
+    )
+
+
+    rgb = np.tile(
+        np.array(colors[name], dtype=np.uint8),
+        (surface.n_points,1)
+    )
+
+
+    surface.point_data["RGB"] = rgb
+
+
+    models.append(surface)
+
+
+plotter = pv.Plotter(
+    lighting="none",
+    window_size=(1000,1000),
+    off_screen=True
+)
+
+for i, block in enumerate(models):
+
+    name = list(organ_labels.values())[i]
+
+    if name in {
+        "lung_upper_lobe_left",
+        "lung_lower_lobe_left",
+        "lung_upper_lobe_right",
+        "lung_middle_lobe_right",
+        "lung_lower_lobe_right",
+
+    }:
+        opacity = 0.3
+    else:
+        opacity = 1.0
+
+    plotter.add_mesh(
+        block,
+        scalars="RGB",
+        rgb=True,
+        smooth_shading=True,
+        opacity=opacity
+    )
+
+light = pv.Light(light_type="headlight")
+plotter.add_light(light)
+
+
+
+bounds = models.bounds
+
+center = np.array([
+    (bounds[0]+bounds[1])/2,
+    (bounds[2]+bounds[3])/2,
+    (bounds[4]+bounds[5])/2,
+])
+
+
+radius = max(
+    bounds[1]-bounds[0],
+    bounds[3]-bounds[2],
+    bounds[5]-bounds[4],
+) * 2.5
+
+
+frame_dir = "organ_frames"
+os.makedirs(frame_dir, exist_ok=True)
+
+
+n_frames = 250
+elevation = np.radians(30)
+
+
+for i, angle in enumerate(
+    np.linspace(0,360,n_frames,endpoint=False) + 270
+):
+
+    theta = np.radians(angle)
+
+
+    x = center[0] + radius*np.cos(theta)*np.cos(elevation)
+    y = center[1] + radius*np.sin(theta)*np.cos(elevation)
+    z = center[2] + radius*np.sin(elevation)
+
+
+    plotter.camera.position = (x,y,z)
+    plotter.camera.focal_point = center
+    plotter.camera.up = (0,0,1)
+
+
+    plotter.render()
+
+
+    plotter.screenshot(
+        os.path.join(
+            frame_dir,
+            f"frame_{i:04d}.png"
+        )
+    )
+
+
+plotter.close()
+
+print("Saved organ frames.")
