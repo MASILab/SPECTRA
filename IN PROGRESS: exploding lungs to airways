@@ -32,7 +32,7 @@ structure_labels = {
 
 colors = {
 
-    "lung_airways": [0, 165, 185],
+    "lung_airways": [0, 125, 155],
     "lung_upper_lobe_left": [135, 206, 235],
     "lung_lower_lobe_left": [110, 180, 220],
     "lung_upper_lobe_right": [125, 200, 240],
