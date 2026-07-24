@@ -1,0 +1,293 @@
+import os
+import numpy as np
+import pyvista as pv
+import SimpleITK as sitk
+
+airway_file = "data/output.nii.gz"
+seg_file = "data/segmentation_file.nii.gz"
+
+airway_img = sitk.ReadImage(airway_file)
+seg_img = sitk.ReadImage(seg_file)
+
+airway_array = sitk.GetArrayFromImage(airway_img)
+seg_array = sitk.GetArrayFromImage(seg_img)
+
+spacing = airway_img.GetSpacing()
+origin = airway_img.GetOrigin()
+
+structure_labels = {
+    (seg_file, 10): "lung_upper_lobe_left",
+    (seg_file, 11): "lung_lower_lobe_left",
+    (seg_file, 12): "lung_upper_lobe_right",
+    (seg_file, 13): "lung_middle_lobe_right",
+    (seg_file, 14): "lung_lower_lobe_right",
+    (seg_file, 16): "trachea",
+    (airway_file, 1): "lung_airways",
+}
+
+colors = {
+    "lung_airways": [0,125,155],
+    "lung_upper_lobe_left": [135,206,235],
+    "lung_lower_lobe_left": [110,180,220],
+    "lung_upper_lobe_right": [125,200,240],
+    "lung_middle_lobe_right": [90,185,225],
+    "lung_lower_lobe_right": [70,160,220],
+    "trachea": [0,190,210],
+}
+
+centroids = {
+    "lung_upper_lobe_left":
+        np.array([79.38,546.64,22.51]),
+    "lung_lower_lobe_left":
+        np.array([79.01,498.79,-40.45]),
+    "lung_upper_lobe_right":
+        np.array([-64.43,548.49,46.06]),
+    "lung_middle_lobe_right":
+        np.array([-61.65,589.82,-39.87]),
+    "lung_lower_lobe_right":
+        np.array([-75.32,521.02,-45.13]),
+}
+
+models = pv.MultiBlock()
+
+for (file,label), name in structure_labels.items():
+
+    print("Processing", name)
+
+    if file == airway_file:
+        array = airway_array
+    else:
+        array = seg_array
+
+    mask = (array == label).astype(np.uint8)
+
+    if mask.sum() == 0:
+        print("missing")
+        continue
+
+    mask = np.transpose(mask,(2,1,0))
+
+    grid = pv.ImageData()
+
+    grid.dimensions = np.array(mask.shape)+1
+    grid.spacing = spacing
+    grid.origin = origin
+
+    grid.cell_data["mask"] = mask.ravel(order="F")
+
+    grid = grid.cell_data_to_point_data()
+
+    surface = grid.contour(
+        isosurfaces=[0.5],
+        scalars="mask"
+    )
+
+    if surface.n_points == 0:
+        continue
+
+    surface = surface.smooth(
+        n_iter=200,
+        relaxation_factor=0.05
+    )
+
+    rgb = np.tile(
+        np.array(colors[name],dtype=np.uint8),
+        (surface.n_points,1)
+    )
+
+    surface.point_data["RGB"] = rgb
+
+    models.append(surface)
+
+bounds = models.bounds
+
+center = np.array([
+
+    (bounds[0]+bounds[1])/2,
+    (bounds[2]+bounds[3])/2,
+    (bounds[4]+bounds[5])/2
+
+])
+
+print("Scene center:",center)
+
+directions = {}
+
+for name,c in centroids.items():
+
+    vec = c-center
+
+    vec = vec / np.linalg.norm(vec)
+
+    directions[name] = vec
+
+original_meshes = {}
+
+for name,mesh in zip(structure_labels.values(),models):
+
+    if name in centroids:
+
+        original_meshes[name] = mesh.copy()
+
+plotter = pv.Plotter(
+    lighting="none",
+    window_size=(1000,1000),
+    off_screen=True
+)
+
+light = pv.Light(
+    light_type="headlight"
+)
+
+plotter.add_light(light)
+
+frame_dir="temp_frames"
+
+os.makedirs(
+    frame_dir,
+    exist_ok=True
+)
+
+actors = {}
+
+dissolve_values = {}
+
+for name, mesh in original_meshes.items():
+
+    if name in centroids:
+
+        dissolve_values[name] = np.random.random(
+            mesh.n_points
+        )
+
+for name, mesh in original_meshes.items():
+
+    actor = plotter.add_mesh(
+        mesh,
+        scalars="RGB",
+        rgb=True,
+        smooth_shading=True
+    )
+
+    actors[name] = actor
+
+dissolve_masks = {}
+
+
+for name, mesh in zip(
+    structure_labels.values(),
+    models
+):
+
+    if name not in centroids:
+
+        plotter.add_mesh(
+            mesh,
+            scalars="RGB",
+            rgb=True,
+            smooth_shading=True
+        )
+
+
+
+n_frames = 250
+
+max_distance = 250
+
+
+radius = max(
+    bounds[1]-bounds[0],
+    bounds[3]-bounds[2],
+    bounds[5]-bounds[4],
+) * 2.5
+
+
+elevation = np.radians(30)
+
+
+for i in range(n_frames):
+
+    half_frames = n_frames // 2
+
+    if i <= half_frames:
+
+        distance = (
+            max_distance *
+            (i / half_frames)
+        )
+
+    else:
+
+        distance = (
+            max_distance *
+            ((n_frames - i) / half_frames)
+        )
+
+
+    d = distance / max_distance
+
+    opacity = 1 - (6*d**5 - 15*d**4 + 10*d**3)
+
+    for name, actor in actors.items():
+
+        if name not in centroids:
+            continue
+
+        offset = directions[name] * distance
+
+        actor.SetPosition(
+            offset[0],
+            offset[1],
+            offset[2]
+        )
+
+        actor.GetProperty().SetOpacity(min(opacity, 0.99))
+
+    angle = np.radians(
+        270 + (i/n_frames)*360
+    )
+
+    x = (
+        center[0]
+        +
+        radius*np.cos(angle)*np.cos(elevation)
+    )
+
+    y = (
+        center[1]
+        +
+        radius*np.sin(angle)*np.cos(elevation)
+    )
+
+    z = (
+        center[2]
+        +
+        radius*np.sin(elevation)
+    )
+
+    plotter.camera.position = (
+        x,
+        y,
+        z
+    )
+
+    plotter.camera.focal_point = center
+
+    plotter.camera.up = (
+        0,
+        0,
+        1
+    )
+
+    plotter.render()
+
+    plotter.screenshot(
+        os.path.join(
+            frame_dir,
+            f"frame_{i:04d}.png"
+        )
+    )
+
+plotter.close()
+
+print("Saved exploded lung animation frames.")
