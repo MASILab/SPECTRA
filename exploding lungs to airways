@@ -141,7 +141,7 @@ light = pv.Light(
 
 plotter.add_light(light)
 
-frame_dir="temp_frames"
+frame_dir="exploding_lung_to_airways_frames"
 
 os.makedirs(
     frame_dir,
