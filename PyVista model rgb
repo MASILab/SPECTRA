@@ -1,0 +1,69 @@
+ Left upper lung lobe "color": (172, 138, 115),
+    },
+    11: {
+        "name": "Left lower lung lobe",
+        "color": (224, 186, 162),
+    },
+    12: {
+        "name": "Right upper lung lobe",
+        "color": (172, 138, 115),
+    },
+    13: {
+        "name": "Right middle lung lobe",
+        "color": (202, 164, 140),
+    },
+    14: {
+        "name": "Right lower lung lobe",
+        "color": (224, 186, 162),
+    },
+    16: {
+        "name": "Trachea",
+        "color": (182, 228, 255),
+RIB_COLOR = (253, 232, 158)
+STERNUM_COLOR = (244, 217, 154)
+CARTILAGE_COLOR = (111, 184, 210)
+heart -         "color": (206, 110, 84),
+    },
+    52: {
+        "name": "Aorta",
+        "color": (224, 97, 76),
+    },
+    53: {
+        "name": "Pulmonary vein",
+        "color": (0, 122, 171),
+    },
+    54: {
+        "name": "Brachiocephalic trunk",
+        "color": (196, 121, 79),
+    },
+    55: {
+        "name": "Right subclavian artery",
+        "color": (216, 101, 89),
+    },
+    56: {
+        "name": "Left subclavian artery",
+        "color": (216, 101, 69),
+    },
+    57: {
+        "name": "Right common carotid artery",
+        "color": (10, 105, 155),
+    },
+    58: {
+        "name": "Left common carotid artery",
+        "color": (0, 112, 165),
+    },
+    59: {
+        "name": "Left brachiocephalic vein",
+        "color": (0, 161, 196),
+    },
+    60: {
+        "name": "Right brachiocephalic vein",
+        "color": (0, 151, 206),
+    },
+    62: {
+        "name": "Superior vena cava",
+        "color": (0, 141, 226),
+    },
+    63: {
+        "name": "Inferior vena cava",
+        "color": (0, 151, 206),
