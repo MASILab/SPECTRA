@@ -23,11 +23,11 @@ lung_labels = {
 }
 
 label_colors = {
-    10: [135, 206, 235],  # sky blue
-    11: [110, 180, 220],  # steel blue
-    12: [125, 200, 240],  # light sky blue
-    13: [90, 185, 225],   # cerulean
-    14: [70, 160, 220],   # deep sky blue
+    10: [172, 138, 115],
+    11: [224, 186, 162],
+    12: [172, 138, 115],
+    13: [202, 164, 140],
+    14: [224, 186, 162],
 }
 
 labels_to_keep = list(lung_labels.keys())
