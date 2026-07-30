@@ -1,0 +1,400 @@
+import os
+import numpy as np
+import pyvista as pv
+import SimpleITK as sitk
+
+seg_file = "data/segmentation_file.nii.gz"
+
+seg_img = sitk.ReadImage(seg_file)
+
+seg_array = sitk.GetArrayFromImage(seg_img)
+
+spacing = seg_img.GetSpacing()
+origin = seg_img.GetOrigin()
+
+structure_labels = {
+    (seg_file, 32): "vertebrae_T12",
+    (seg_file, 33): "vertebrae_T11",
+    (seg_file, 34): "vertebrae_T10",
+    (seg_file, 35): "vertebrae_T9",
+    (seg_file, 36): "vertebrae_T8",
+    (seg_file, 37): "vertebrae_T7",
+    (seg_file, 38): "vertebrae_T6",
+    (seg_file, 39): "vertebrae_T5",
+    (seg_file, 40): "vertebrae_T4",
+    (seg_file, 41): "vertebrae_T3",
+    (seg_file, 42): "vertebrae_T2",
+    (seg_file, 43): "vertebrae_T1",
+
+    (seg_file, 92): "rib_left_1",
+    (seg_file, 93): "rib_left_2",
+    (seg_file, 94): "rib_left_3",
+    (seg_file, 95): "rib_left_4",
+    (seg_file, 96): "rib_left_5",
+    (seg_file, 97): "rib_left_6",
+    (seg_file, 98): "rib_left_7",
+    (seg_file, 99): "rib_left_8",
+    (seg_file, 100): "rib_left_9",
+    (seg_file, 101): "rib_left_10",
+    (seg_file, 102): "rib_left_11",
+    (seg_file, 103): "rib_left_12",
+
+    (seg_file, 104): "rib_right_1",
+    (seg_file, 105): "rib_right_2",
+    (seg_file, 106): "rib_right_3",
+    (seg_file, 107): "rib_right_4",
+    (seg_file, 108): "rib_right_5",
+    (seg_file, 109): "rib_right_6",
+    (seg_file, 110): "rib_right_7",
+    (seg_file, 111): "rib_right_8",
+    (seg_file, 112): "rib_right_9",
+    (seg_file, 113): "rib_right_10",
+    (seg_file, 114): "rib_right_11",
+    (seg_file, 115): "rib_right_12",
+
+    (seg_file, 116): "sternum",
+    (seg_file, 117): "costal_cartilages",
+
+    (seg_file, 10): "lung_upper_lobe_left",
+    (seg_file, 11): "lung_lower_lobe_left",
+    (seg_file, 12): "lung_upper_lobe_right",
+    (seg_file, 13): "lung_middle_lobe_right",
+    (seg_file, 14): "lung_lower_lobe_right",
+    (seg_file, 16): "trachea",
+}
+
+colors = {
+    "vertebrae_T12": [200, 185, 138],
+    "vertebrae_T11": [200, 185, 138],
+    "vertebrae_T10": [200, 185, 138],
+    "vertebrae_T9": [200, 185, 138],
+    "vertebrae_T8": [200, 185, 138],
+    "vertebrae_T7": [200, 185, 138],
+    "vertebrae_T6": [200, 185, 138],
+    "vertebrae_T5": [200, 185, 138],
+    "vertebrae_T4": [200, 185, 138],
+    "vertebrae_T3": [200, 185, 138],
+    "vertebrae_T2": [200, 185, 138],
+    "vertebrae_T1": [200, 185, 138],
+
+    "rib_left_1": [222, 205, 170],
+    "rib_left_2": [222, 205, 170],
+    "rib_left_3": [222, 205, 170],
+    "rib_left_4": [222, 205, 170],
+    "rib_left_5": [222, 205, 170],
+    "rib_left_6": [222, 205, 170],
+    "rib_left_7": [222, 205, 170],
+    "rib_left_8": [222, 205, 170],
+    "rib_left_9": [222, 205, 170],
+    "rib_left_10": [222, 205, 170],
+    "rib_left_11": [222, 205, 170],
+    "rib_left_12": [222, 205, 170],
+
+    "rib_right_1": [222, 205, 170],
+    "rib_right_2": [222, 205, 170],
+    "rib_right_3": [222, 205, 170],
+    "rib_right_4": [222, 205, 170],
+    "rib_right_5": [222, 205, 170],
+    "rib_right_6": [222, 205, 170],
+    "rib_right_7": [222, 205, 170],
+    "rib_right_8": [222, 205, 170],
+    "rib_right_9": [222, 205, 170],
+    "rib_right_10": [222, 205, 170],
+    "rib_right_11": [222, 205, 170],
+    "rib_right_12": [222, 205, 170],
+
+    "sternum": [240, 235, 220],
+    "costal_cartilages": [190, 240, 240],
+
+    "lung_upper_lobe_left": [159,223,250],
+    "lung_lower_lobe_left": [80,200,255],
+    "lung_upper_lobe_right": [120,170,255],
+    "lung_middle_lobe_right": [40,130,220],
+    "lung_lower_lobe_right": [10,70,170],
+    "trachea": [0,190,210],
+}
+
+centroids = {
+    "vertebrae_T12": np.array([-10.90, 196.39, -153.07]),
+    "vertebrae_T11": np.array([-14.50, 197.80, -121.59]),
+    "vertebrae_T10": np.array([-17.64, 198.48, -91.89]),
+    "vertebrae_T9": np.array([-20.26, 199.07, -64.67]),
+    "vertebrae_T8": np.array([-23.16, 199.13, -37.94]),
+    "vertebrae_T7": np.array([-25.81, 197.47, -11.70]),
+    "vertebrae_T6": np.array([-27.55, 194.69, 13.27]),
+    "vertebrae_T5": np.array([-27.26, 190.37, 37.92]),
+    "vertebrae_T4": np.array([-27.75, 186.41, 61.88]),
+    "vertebrae_T3": np.array([-27.40, 181.19, 85.18]),
+    "vertebrae_T2": np.array([-27.82, 175.79, 108.38]),
+    "vertebrae_T1": np.array([-29.35, 172.52, 131.03]),
+
+    "rib_left_1": np.array([35.48, 155.42, 119.66]),
+    "rib_left_2": np.array([54.04, 152.77, 101.90]),
+    "rib_left_3": np.array([67.86, 151.58, 76.82]),
+    "rib_left_4": np.array([77.43, 152.52, 50.16]),
+    "rib_left_5": np.array([82.11, 159.35, 23.39]),
+    "rib_left_6": np.array([89.71, 162.26, -10.61]),
+    "rib_left_7": np.array([94.18, 170.59, -39.48]),
+    "rib_left_8": np.array([95.18, 178.17, -69.93]),
+    "rib_left_9": np.array([94.53, 188.57, -97.83]),
+    "rib_left_10": np.array([91.01, 198.29, -124.35]),
+    "rib_left_11": np.array([85.39, 210.01, -155.92]),
+    "rib_left_12": np.array([56.13, 219.75, -168.62]),
+
+    "rib_right_1": np.array([-88.02, 145.66, 115.24]),
+    "rib_right_2": np.array([-104.49, 141.85, 92.87]),
+    "rib_right_3": np.array([-117.85, 138.19, 64.35]),
+    "rib_right_4": np.array([-123.45, 139.65, 36.66]),
+    "rib_right_5": np.array([-124.81, 143.49, 4.76]),
+    "rib_right_6": np.array([-127.71, 144.47, -32.49]),
+    "rib_right_7": np.array([-127.62, 152.81, -62.81]),
+    "rib_right_8": np.array([-122.94, 164.01, -88.91]),
+    "rib_right_9": np.array([-119.04, 176.03, -115.52]),
+    "rib_right_10": np.array([-111.86, 186.95, -145.14]),
+    "rib_right_11": np.array([-103.60, 196.07, -176.99]),
+    "rib_right_12": np.array([-77.58, 210.85, -193.23]),
+
+    "sternum": np.array([-17.40, 86.25, 31.28]),
+    "costal_cartilages": np.array([-3.73, 71.07, -74.03]),
+}
+
+models = pv.MultiBlock()
+
+for (file,label), name in structure_labels.items():
+
+    print("Processing", name)
+
+    array = seg_array
+
+    mask = (array == label).astype(np.uint8)
+
+    if mask.sum() == 0:
+        print("missing")
+        continue
+
+    mask = np.transpose(mask,(2,1,0))
+
+    grid = pv.ImageData()
+
+    grid.dimensions = np.array(mask.shape)+1
+    grid.spacing = spacing
+    grid.origin = origin
+
+    grid.cell_data["mask"] = mask.ravel(order="F")
+
+    grid = grid.cell_data_to_point_data()
+
+    surface = grid.contour(
+        isosurfaces=[0.5],
+        scalars="mask"
+    )
+
+    if surface.n_points == 0:
+        continue
+
+    surface = surface.smooth(
+        n_iter=200,
+        relaxation_factor=0.05
+    )
+
+    rgb = np.tile(
+        np.array(colors[name],dtype=np.uint8),
+        (surface.n_points,1)
+    )
+
+    surface.point_data["RGB"] = rgb
+
+    models.append(surface)
+
+bounds = models.bounds
+
+center = np.array([
+
+    (bounds[0]+bounds[1])/2,
+    (bounds[2]+bounds[3])/2,
+    (bounds[4]+bounds[5])/2
+
+])
+
+print("Scene center:",center)
+
+directions = {}
+
+for name,c in centroids.items():
+
+    vec = c-center
+
+    vec = vec / np.linalg.norm(vec)
+
+    directions[name] = vec
+
+original_meshes = {}
+
+for name,mesh in zip(structure_labels.values(),models):
+
+    if name in centroids:
+
+        original_meshes[name] = mesh.copy()
+
+plotter = pv.Plotter(
+    lighting="none",
+    window_size=(1000,1000),
+    off_screen=True
+)
+
+light = pv.Light(
+    light_type="headlight"
+)
+
+plotter.add_light(light)
+
+frame_dir="exploding_bones_to_lungs_frames"
+
+os.makedirs(
+    frame_dir,
+    exist_ok=True
+)
+
+actors = {}
+
+dissolve_values = {}
+
+for name, mesh in original_meshes.items():
+
+    if name in centroids:
+
+        dissolve_values[name] = np.random.random(
+            mesh.n_points
+        )
+
+for name, mesh in original_meshes.items():
+
+    actor = plotter.add_mesh(
+        mesh,
+        scalars="RGB",
+        rgb=True,
+        smooth_shading=True
+    )
+
+    actors[name] = actor
+
+dissolve_masks = {}
+
+
+for name, mesh in zip(
+    structure_labels.values(),
+    models
+):
+
+    if name not in centroids:
+
+        plotter.add_mesh(
+            mesh,
+            scalars="RGB",
+            rgb=True,
+            smooth_shading=True
+        )
+
+
+
+n_frames = 250
+
+max_distance = 250
+
+
+radius = max(
+    bounds[1]-bounds[0],
+    bounds[3]-bounds[2],
+    bounds[5]-bounds[4],
+) * 2.5
+
+
+elevation = np.radians(30)
+
+
+for i in range(n_frames):
+
+    half_frames = n_frames // 2
+
+    if i <= half_frames:
+
+        distance = (
+            max_distance *
+            (i / half_frames)
+        )
+
+    else:
+
+        distance = (
+            max_distance *
+            ((n_frames - i) / half_frames)
+        )
+
+
+    d = distance / max_distance
+
+    opacity = 1 - (6*d**5 - 15*d**4 + 10*d**3)
+
+    for name, actor in actors.items():
+
+        if name not in centroids:
+            continue
+
+        offset = directions[name] * distance
+
+        actor.SetPosition(
+            offset[0],
+            offset[1],
+            offset[2]
+        )
+
+        actor.GetProperty().SetOpacity(min(opacity, 0.99))
+
+    angle = np.radians(
+        270 + (i/n_frames)*360
+    )
+
+    x = (
+        center[0]
+        +
+        radius*np.cos(angle)*np.cos(elevation)
+    )
+
+    y = (
+        center[1]
+        +
+        radius*np.sin(angle)*np.cos(elevation)
+    )
+
+    z = (
+        center[2]
+        +
+        radius*np.sin(elevation)
+    )
+
+    plotter.camera.position = (
+        x,
+        y,
+        z
+    )
+
+    plotter.camera.focal_point = center
+
+    plotter.camera.up = (
+        0,
+        0,
+        1
+    )
+
+    plotter.render()
+
+    plotter.screenshot(
+        os.path.join(
+            frame_dir,
+            f"frame_{i:04d}.png"
+        )
+    )
+
+plotter.close()
+
+print("Saved exploded bone animation frames.")
