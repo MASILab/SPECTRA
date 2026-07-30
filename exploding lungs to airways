@@ -30,8 +30,8 @@ colors = {
     "lung_upper_lobe_left": [159,223,250],
     "lung_lower_lobe_left": [80,200,255],
     "lung_upper_lobe_right": [120,170,255],
-    "lung_middle_lobe_right": [10,70,170],
-    "lung_lower_lobe_right": [0,190,210],
+    "lung_middle_lobe_right": [40,130,220],
+    "lung_lower_lobe_right": [10,70,170],
     "trachea": [0,190,210],
 }
 
