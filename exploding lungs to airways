@@ -27,11 +27,11 @@ structure_labels = {
 
 colors = {
     "lung_airways": [0,125,155],
-    "lung_upper_lobe_left": [135,206,235],
-    "lung_lower_lobe_left": [110,180,220],
-    "lung_upper_lobe_right": [125,200,240],
-    "lung_middle_lobe_right": [90,185,225],
-    "lung_lower_lobe_right": [70,160,220],
+    "lung_upper_lobe_left": [159,223,250],
+    "lung_lower_lobe_left": [80,200,255],
+    "lung_upper_lobe_right": [120,170,255],
+    "lung_middle_lobe_right": [10,70,170],
+    "lung_lower_lobe_right": [0,190,210],
     "trachea": [0,190,210],
 }
 
