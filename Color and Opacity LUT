@@ -1,0 +1,758 @@
+{
+  "1": {
+    "structure": "Lung airways (bronchioles)",
+    "totalsegmentator_class": "lung_vessels",
+    "opacity": 1,
+    "rgb": [
+      0,
+      125,
+      155
+    ],
+    "hex": "#007D9B",
+    "rationale": "Dark teal represents the deeper, smaller air-filled bronchioles and creates a natural progression from the brighter central airways."
+  },
+  "2": {
+    "structure": "Lung airways wall (main bronchi)",
+    "totalsegmentator_class": "lung_vessels",
+    "opacity": 1,
+    "rgb": [
+      0,
+      165,
+      185
+    ],
+    "hex": "#00A5B9",
+    "rationale": "Medium teal represents the air-conducting main bronchi and visually bridges the bright cyan trachea with the darker distal bronchioles."
+  },
+  "10": {
+    "structure": "Left upper lung lobe",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      159,
+      223,
+      250
+    ],
+    "hex": "#9FDFFA",
+    "rationale": "Very light blue evokes air and oxygen while giving the left upper lobe a light, superior position within the lung palette."
+  },
+  "11": {
+    "structure": "Left lower lung lobe",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      80,
+      200,
+      255
+    ],
+    "hex": "#50C8FF",
+    "rationale": "Bright sky blue evokes air and oxygen while distinguishing the left lower lobe from the lighter upper lobe."
+  },
+  "12": {
+    "structure": "Right upper lung lobe",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      120,
+      170,
+      255
+    ],
+    "hex": "#78AAFF",
+    "rationale": "Soft blue-violet represents aerated lung tissue and gives the right upper lobe its own recognizable tone."
+  },
+  "13": {
+    "structure": "Right middle lung lobe",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      40,
+      130,
+      220
+    ],
+    "hex": "#2882DC",
+    "rationale": "Medium blue reflects air-filled lung tissue while clearly marking the smaller right middle lobe."
+  },
+  "14": {
+    "structure": "Right lower lung lobe",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      10,
+      70,
+      170
+    ],
+    "hex": "#0A46AA",
+    "rationale": "Deep blue continues the air-and-oxygen theme and gives the right lower lobe a visually grounded, inferior tone."
+  },
+  "16": {
+    "structure": "Trachea",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      0,
+      190,
+      210
+    ],
+    "hex": "#00BED2",
+    "rationale": "Bright cyan suggests an open, air-filled passage and makes the trachea the clearest central structure in the airway system."
+  },
+  "32": {
+    "structure": "Vertebrae T12",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      200,
+      185,
+      138
+    ],
+    "hex": "#C8B98A",
+    "rationale": "Warm tan resembles cortical bone and keeps the thoracic vertebrae visually grouped."
+  },
+  "33": {
+    "structure": "Vertebrae T11",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      200,
+      185,
+      138
+    ],
+    "hex": "#C8B98A",
+    "rationale": "Warm tan resembles cortical bone and keeps the thoracic vertebrae visually grouped."
+  },
+  "34": {
+    "structure": "Vertebrae T10",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      200,
+      185,
+      138
+    ],
+    "hex": "#C8B98A",
+    "rationale": "Warm tan resembles cortical bone and keeps the thoracic vertebrae visually grouped."
+  },
+  "35": {
+    "structure": "Vertebrae T9",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      200,
+      185,
+      138
+    ],
+    "hex": "#C8B98A",
+    "rationale": "Warm tan resembles cortical bone and keeps the thoracic vertebrae visually grouped."
+  },
+  "36": {
+    "structure": "Vertebrae T8",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      200,
+      185,
+      138
+    ],
+    "hex": "#C8B98A",
+    "rationale": "Warm tan resembles cortical bone and keeps the thoracic vertebrae visually grouped."
+  },
+  "37": {
+    "structure": "Vertebrae T7",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      200,
+      185,
+      138
+    ],
+    "hex": "#C8B98A",
+    "rationale": "Warm tan resembles cortical bone and keeps the thoracic vertebrae visually grouped."
+  },
+  "38": {
+    "structure": "Vertebrae T6",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      200,
+      185,
+      138
+    ],
+    "hex": "#C8B98A",
+    "rationale": "Warm tan resembles cortical bone and keeps the thoracic vertebrae visually grouped."
+  },
+  "39": {
+    "structure": "Vertebrae T5",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      200,
+      185,
+      138
+    ],
+    "hex": "#C8B98A",
+    "rationale": "Warm tan resembles cortical bone and keeps the thoracic vertebrae visually grouped."
+  },
+  "40": {
+    "structure": "Vertebrae T4",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      200,
+      185,
+      138
+    ],
+    "hex": "#C8B98A",
+    "rationale": "Warm tan resembles cortical bone and keeps the thoracic vertebrae visually grouped."
+  },
+  "41": {
+    "structure": "Vertebrae T3",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      200,
+      185,
+      138
+    ],
+    "hex": "#C8B98A",
+    "rationale": "Warm tan resembles cortical bone and keeps the thoracic vertebrae visually grouped."
+  },
+  "42": {
+    "structure": "Vertebrae T2",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      200,
+      185,
+      138
+    ],
+    "hex": "#C8B98A",
+    "rationale": "Warm tan resembles cortical bone and keeps the thoracic vertebrae visually grouped."
+  },
+  "43": {
+    "structure": "Vertebrae T1",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      200,
+      185,
+      138
+    ],
+    "hex": "#C8B98A",
+    "rationale": "Warm tan resembles cortical bone and keeps the thoracic vertebrae visually grouped."
+  },
+  "44": {
+    "structure": "Heart myocardium",
+    "totalsegmentator_class": "total_v1",
+    "opacity": 0.8,
+    "rgb": [
+      180,
+      30,
+      45
+    ],
+    "hex": "#B41E2D",
+    "rationale": "Crimson represents cardiac muscle and serves as the central color of the heart family."
+  },
+  "45": {
+    "structure": "Heart atrium left",
+    "totalsegmentator_class": "total_v1",
+    "opacity": 0.8,
+    "rgb": [
+      165,
+      55,
+      80
+    ],
+    "hex": "#A53750",
+    "rationale": "Muted crimson distinguishes the left atrium while keeping it within the cardiac color family."
+  },
+  "46": {
+    "structure": "Heart ventricle left",
+    "totalsegmentator_class": "total_v1",
+    "opacity": 0.8,
+    "rgb": [
+      150,
+      15,
+      35
+    ],
+    "hex": "#960F23",
+    "rationale": "Deep red emphasizes the thick-walled left ventricle and differentiates it from the atria."
+  },
+  "47": {
+    "structure": "Heart atrium right",
+    "totalsegmentator_class": "total_v1",
+    "opacity": 0.8,
+    "rgb": [
+      195,
+      65,
+      85
+    ],
+    "hex": "#C34155",
+    "rationale": "Lighter crimson differentiates the right atrium while preserving cardiac consistency."
+  },
+  "48": {
+    "structure": "Heart ventricle right",
+    "totalsegmentator_class": "total_v1",
+    "opacity": 0.8,
+    "rgb": [
+      205,
+      45,
+      60
+    ],
+    "hex": "#CD2D3C",
+    "rationale": "Bright crimson distinguishes the right ventricle from the other cardiac chambers."
+  },
+  "49": {
+    "structure": "Pulmonary artery",
+    "totalsegmentator_class": "total_v1",
+    "opacity": 1,
+    "rgb": [
+      230,
+      80,
+      50
+    ],
+    "hex": "#E65032",
+    "rationale": "Orange-red marks an artery while differentiating the pulmonary circulation from the systemic aorta."
+  },
+  "52": {
+    "structure": "Aorta",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      220,
+      20,
+      60
+    ],
+    "hex": "#DC143C",
+    "rationale": "Strong arterial red highlights the main systemic artery."
+  },
+  "53": {
+    "structure": "Pulmonary vein",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      205,
+      70,
+      90
+    ],
+    "hex": "#CD465A",
+    "rationale": "Pink-red reflects oxygenated pulmonary venous blood while remaining distinct from systemic arteries."
+  },
+  "54": {
+    "structure": "Brachiocephalic trunk",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      215,
+      55,
+      55
+    ],
+    "hex": "#D73737",
+    "rationale": "Red identifies this vessel as a major systemic arterial branch."
+  },
+  "55": {
+    "structure": "Subclavian artery left",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      210,
+      45,
+      45
+    ],
+    "hex": "#D22D2D",
+    "rationale": "Arterial red groups the left subclavian artery with the systemic arterial tree."
+  },
+  "56": {
+    "structure": "Subclavian artery right",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      210,
+      45,
+      45
+    ],
+    "hex": "#D22D2D",
+    "rationale": "Arterial red groups the right subclavian artery with the systemic arterial tree."
+  },
+  "57": {
+    "structure": "Common carotid artery left",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      225,
+      45,
+      45
+    ],
+    "hex": "#E12D2D",
+    "rationale": "Bright arterial red makes the left carotid easy to identify among superior thoracic vessels."
+  },
+  "58": {
+    "structure": "Common carotid artery right",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      225,
+      45,
+      45
+    ],
+    "hex": "#E12D2D",
+    "rationale": "Bright arterial red makes the right carotid easy to identify among superior thoracic vessels."
+  },
+  "59": {
+    "structure": "Brachiocephalic vein left",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      90,
+      140,
+      220
+    ],
+    "hex": "#5A8CDC",
+    "rationale": "Medium blue identifies the left brachiocephalic vein as part of the systemic venous system."
+  },
+  "60": {
+    "structure": "Brachiocephalic vein right",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      90,
+      140,
+      220
+    ],
+    "hex": "#5A8CDC",
+    "rationale": "Medium blue identifies the right brachiocephalic vein as part of the systemic venous system."
+  },
+  "62": {
+    "structure": "Superior vena cava",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      45,
+      95,
+      190
+    ],
+    "hex": "#2D5FBE",
+    "rationale": "Deep venous blue highlights the major vessel returning blood from the upper body."
+  },
+  "63": {
+    "structure": "Inferior vena cava",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      30,
+      75,
+      170
+    ],
+    "hex": "#1E4BAA",
+    "rationale": "Darker venous blue distinguishes the inferior vena cava from the superior vena cava."
+  },
+  "92": {
+    "structure": "Rib left 1",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      222,
+      205,
+      170
+    ],
+    "hex": "#DECDAA",
+    "rationale": "Light warm ivory resembles bone and groups the left ribs consistently."
+  },
+  "93": {
+    "structure": "Rib left 2",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      222,
+      205,
+      170
+    ],
+    "hex": "#DECDAA",
+    "rationale": "Light warm ivory resembles bone and groups the left ribs consistently."
+  },
+  "94": {
+    "structure": "Rib left 3",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      222,
+      205,
+      170
+    ],
+    "hex": "#DECDAA",
+    "rationale": "Light warm ivory resembles bone and groups the left ribs consistently."
+  },
+  "95": {
+    "structure": "Rib left 4",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      222,
+      205,
+      170
+    ],
+    "hex": "#DECDAA",
+    "rationale": "Light warm ivory resembles bone and groups the left ribs consistently."
+  },
+  "96": {
+    "structure": "Rib left 5",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      222,
+      205,
+      170
+    ],
+    "hex": "#DECDAA",
+    "rationale": "Light warm ivory resembles bone and groups the left ribs consistently."
+  },
+  "97": {
+    "structure": "Rib left 6",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      222,
+      205,
+      170
+    ],
+    "hex": "#DECDAA",
+    "rationale": "Light warm ivory resembles bone and groups the left ribs consistently."
+  },
+  "98": {
+    "structure": "Rib left 7",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      222,
+      205,
+      170
+    ],
+    "hex": "#DECDAA",
+    "rationale": "Light warm ivory resembles bone and groups the left ribs consistently."
+  },
+  "99": {
+    "structure": "Rib left 8",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      222,
+      205,
+      170
+    ],
+    "hex": "#DECDAA",
+    "rationale": "Light warm ivory resembles bone and groups the left ribs consistently."
+  },
+  "100": {
+    "structure": "Rib left 9",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      222,
+      205,
+      170
+    ],
+    "hex": "#DECDAA",
+    "rationale": "Light warm ivory resembles bone and groups the left ribs consistently."
+  },
+  "101": {
+    "structure": "Rib left 10",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      222,
+      205,
+      170
+    ],
+    "hex": "#DECDAA",
+    "rationale": "Light warm ivory resembles bone and groups the left ribs consistently."
+  },
+  "102": {
+    "structure": "Rib left 11",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      222,
+      205,
+      170
+    ],
+    "hex": "#DECDAA",
+    "rationale": "Light warm ivory resembles bone and groups the left ribs consistently."
+  },
+  "103": {
+    "structure": "Rib left 12",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      222,
+      205,
+      170
+    ],
+    "hex": "#DECDAA",
+    "rationale": "Light warm ivory resembles bone and groups the left ribs consistently."
+  },
+  "104": {
+    "structure": "Rib right 1",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      222,
+      205,
+      170
+    ],
+    "hex": "#DECDAA",
+    "rationale": "Light warm ivory resembles bone and groups the right ribs consistently."
+  },
+  "105": {
+    "structure": "Rib right 2",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      222,
+      205,
+      170
+    ],
+    "hex": "#DECDAA",
+    "rationale": "Light warm ivory resembles bone and groups the right ribs consistently."
+  },
+  "106": {
+    "structure": "Rib right 3",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      222,
+      205,
+      170
+    ],
+    "hex": "#DECDAA",
+    "rationale": "Light warm ivory resembles bone and groups the right ribs consistently."
+  },
+  "107": {
+    "structure": "Rib right 4",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      222,
+      205,
+      170
+    ],
+    "hex": "#DECDAA",
+    "rationale": "Light warm ivory resembles bone and groups the right ribs consistently."
+  },
+  "108": {
+    "structure": "Rib right 5",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      222,
+      205,
+      170
+    ],
+    "hex": "#DECDAA",
+    "rationale": "Light warm ivory resembles bone and groups the right ribs consistently."
+  },
+  "109": {
+    "structure": "Rib right 6",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      222,
+      205,
+      170
+    ],
+    "hex": "#DECDAA",
+    "rationale": "Light warm ivory resembles bone and groups the right ribs consistently."
+  },
+  "110": {
+    "structure": "Rib right 7",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      222,
+      205,
+      170
+    ],
+    "hex": "#DECDAA",
+    "rationale": "Light warm ivory resembles bone and groups the right ribs consistently."
+  },
+  "111": {
+    "structure": "Rib right 8",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      222,
+      205,
+      170
+    ],
+    "hex": "#DECDAA",
+    "rationale": "Light warm ivory resembles bone and groups the right ribs consistently."
+  },
+  "112": {
+    "structure": "Rib right 9",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      222,
+      205,
+      170
+    ],
+    "hex": "#DECDAA",
+    "rationale": "Light warm ivory resembles bone and groups the right ribs consistently."
+  },
+  "113": {
+    "structure": "Rib right 10",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      222,
+      205,
+      170
+    ],
+    "hex": "#DECDAA",
+    "rationale": "Light warm ivory resembles bone and groups the right ribs consistently."
+  },
+  "114": {
+    "structure": "Rib right 11",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      222,
+      205,
+      170
+    ],
+    "hex": "#DECDAA",
+    "rationale": "Light warm ivory resembles bone and groups the right ribs consistently."
+  },
+  "115": {
+    "structure": "Rib right 12",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      222,
+      205,
+      170
+    ],
+    "hex": "#DECDAA",
+    "rationale": "Light warm ivory resembles bone and groups the right ribs consistently."
+  },
+  "116": {
+    "structure": "Sternum",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      240,
+      235,
+      220
+    ],
+    "hex": "#F0EBDC",
+    "rationale": "Pale ivory distinguishes the sternum from the slightly darker ribs and vertebrae."
+  },
+  "117": {
+    "structure": "Costal cartilages",
+    "totalsegmentator_class": "total",
+    "opacity": 1,
+    "rgb": [
+      190,
+      240,
+      240
+    ],
+    "hex": "#BEF0F0",
+    "rationale": "Pale aqua differentiates cartilage from bone while remaining anatomically subtle."
+  }
+}
