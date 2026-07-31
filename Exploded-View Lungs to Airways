@@ -27,8 +27,8 @@ structure_labels = {
 }
 
 colors = {
-    "lung_bronchi": [0,165,185],
-    "lung_airways": [0,125,155],
+    "lung_bronchi": [0,160,195],
+    "lung_airways": [0,95,145],
     "lung_upper_lobe_left": [159,223,250],
     "lung_lower_lobe_left": [80,200,255],
     "lung_upper_lobe_right": [120,170,255],
