@@ -1,151 +1,93 @@
+import json
 import os
+
 import numpy as np
 import pyvista as pv
 import SimpleITK as sitk
 
+
 ct_file = "data/ct_scan.nii.gz"
 seg_file = "data/segmentation_file.nii.gz"
+lut_file = "data/lut.json"
+
+labels_to_keep = list(range(32, 44)) + list(range(92, 118))
 
 ct = sitk.ReadImage(ct_file)
 seg = sitk.ReadImage(seg_file)
 
 seg_array = sitk.GetArrayFromImage(seg)
-
 spacing = seg.GetSpacing()
 origin = seg.GetOrigin()
 
-bone_labels = {
-    32: "vertebrae_T12",
-    33: "vertebrae_T11",
-    34: "vertebrae_T10",
-    35: "vertebrae_T9",
-    36: "vertebrae_T8",
-    37: "vertebrae_T7",
-    38: "vertebrae_T6",
-    39: "vertebrae_T5",
-    40: "vertebrae_T4",
-    41: "vertebrae_T3",
-    42: "vertebrae_T2",
-    43: "vertebrae_T1",
-    92: "rib_left_1",
-    93: "rib_left_2",
-    94: "rib_left_3",
-    95: "rib_left_4",
-    96: "rib_left_5",
-    97: "rib_left_6",
-    98: "rib_left_7",
-    99: "rib_left_8",
-    100: "rib_left_9",
-    101: "rib_left_10",
-    102: "rib_left_11",
-    103: "rib_left_12",
-    104: "rib_right_1",
-    105: "rib_right_2",
-    106: "rib_right_3",
-    107: "rib_right_4",
-    108: "rib_right_5",
-    109: "rib_right_6",
-    110: "rib_right_7",
-    111: "rib_right_8",
-    112: "rib_right_9",
-    113: "rib_right_10",
-    114: "rib_right_11",
-    115: "rib_right_12",
-    116: "sternum",
-    117: "costal_cartilages"
-}
+with open(lut_file, "r", encoding="utf-8") as f:
+    lut = json.load(f)
 
-label_colors = {
-    32: [200, 185, 138], # warm sandstone bone
-    33: [200, 185, 138],
-    34: [200, 185, 138],
-    35: [200, 185, 138],
-    36: [200, 185, 138],
-    37: [200, 185, 138],
-    38: [200, 185, 138],
-    39: [200, 185, 138],
-    40: [200, 185, 138],
-    41: [200, 185, 138],
-    42: [200, 185, 138],
-    43: [200, 185, 138],
 
-    92:  [222, 205, 170], # bone tan
-    93:  [222, 205, 170],
-    94:  [222, 205, 170],
-    95:  [222, 205, 170],
-    96:  [222, 205, 170],
-    97:  [222, 205, 170],
-    98:  [222, 205, 170],
-    99:  [222, 205, 170],
-    100: [222, 205, 170],
-    101: [222, 205, 170],
-    102: [222, 205, 170],
-    103: [222, 205, 170],
-    104: [222, 205, 170],
-    105: [222, 205, 170],
-    106: [222, 205, 170],
-    107: [222, 205, 170],
-    108: [222, 205, 170],
-    109: [222, 205, 170],
-    110: [222, 205, 170],
-    111: [222, 205, 170],
-    112: [222, 205, 170],
-    113: [222, 205, 170],
-    114: [222, 205, 170],
-    115: [222, 205, 170],
+def get_lut_entry(label):
+    """Return and validate the LUT entry for an integer segmentation label."""
+    entry = lut.get(str(label))
+    if entry is None:
+        raise KeyError(f"Label {label} is missing from {lut_file}")
 
-    116: [240, 235, 220], # ivory
+    rgb = entry.get("rgb")
+    if (
+        not isinstance(rgb, list)
+        or len(rgb) != 3
+        or any(not isinstance(value, (int, float)) for value in rgb)
+        or any(value < 0 or value > 255 for value in rgb)
+    ):
+        raise ValueError(f"Label {label} has an invalid RGB value: {rgb!r}")
 
-    117: [190, 240, 240], # pale cyan
-}
+    opacity = float(entry.get("opacity", 1.0))
+    if not 0.0 <= opacity <= 1.0:
+        raise ValueError(f"Label {label} has invalid opacity: {opacity}")
 
-labels_to_keep = list(bone_labels.keys())
+    return entry, np.asarray(rgb, dtype=np.uint8), opacity
 
-smoothed_model = pv.MultiBlock()
+
+surfaces = []
 
 for label in labels_to_keep:
+    entry, color, opacity = get_lut_entry(label)
+    structure_name = entry.get("structure", f"Label {label}")
 
-    print(f"Processing label {label}: {bone_labels[label]}")
+    print(f"Processing label {label}: {structure_name}")
 
     mask = (seg_array == label).astype(np.uint8)
 
     if mask.sum() == 0:
-        print("  Label not found.")
+        print("  Label not found in segmentation.")
         continue
 
     mask = np.transpose(mask, (2, 1, 0))
 
     grid = pv.ImageData()
-
-    grid.dimensions = np.array(mask.shape) + 1
+    grid.dimensions = np.asarray(mask.shape) + 1
     grid.spacing = spacing
     grid.origin = origin
-
     grid.cell_data["mask"] = mask.ravel(order="F")
-
     grid = grid.cell_data_to_point_data()
 
-    surface = grid.contour(
-        isosurfaces=[0.5],
-        scalars="mask",
-    )
+    surface = grid.contour(isosurfaces=[0.5], scalars="mask")
 
     if surface.n_points == 0:
+        print("  No surface could be generated.")
         continue
 
-    surface = surface.smooth(
-        n_iter=200,
-        relaxation_factor=0.05,
+    surface = surface.smooth(n_iter=200, relaxation_factor=0.05)
+    surface.point_data["RGB"] = np.tile(color, (surface.n_points, 1))
+
+    surfaces.append(
+        {
+            "label": label,
+            "name": structure_name,
+            "opacity": opacity,
+            "surface": surface,
+        }
     )
 
-    rgb = np.tile(
-        np.array(label_colors[label], dtype=np.uint8),
-        (surface.n_points, 1),
-    )
-
-    surface.point_data["RGB"] = rgb
-
-    smoothed_model.append(surface)
+if not surfaces:
+    raise RuntimeError("None of the requested LUT labels were found in the segmentation.")
 
 plotter = pv.Plotter(
     lighting="none",
@@ -153,41 +95,40 @@ plotter = pv.Plotter(
     off_screen=True,
 )
 
-plotter.add_mesh(
-    smoothed_model,
-    scalars="RGB",
-    rgb=True,
-    smooth_shading=True,
-)
+for item in surfaces:
+    plotter.add_mesh(
+        item["surface"],
+        scalars="RGB",
+        rgb=True,
+        opacity=item["opacity"],
+        smooth_shading=True,
+        name=f'{item["label"]}: {item["name"]}',
+    )
 
 light = pv.Light(light_type="headlight")
 plotter.add_light(light)
 
-bounds = smoothed_model.bounds
+bounds = np.asarray(plotter.bounds)
+center = np.array(
+    [
+        (bounds[0] + bounds[1]) / 2,
+        (bounds[2] + bounds[3]) / 2,
+        (bounds[4] + bounds[5]) / 2,
+    ]
+)
 
-center = np.array([
-    (bounds[0] + bounds[1]) / 2,
-    (bounds[2] + bounds[3]) / 2,
-    (bounds[4] + bounds[5]) / 2,
-])
-
-radius = max(
-    bounds[1] - bounds[0],
-    bounds[3] - bounds[2],
-) * 3
-
+radius = max(bounds[1] - bounds[0], bounds[3] - bounds[2]) * 3
 elevation = np.radians(30)
 
 n_frames = 250
-frame_dir = "bone_frames"
+frame_dir = "json_bone_frames"
 os.makedirs(frame_dir, exist_ok=True)
 
-start_angle = 90
+start_angle = 270
 
 for i, azimuth_deg in enumerate(
     np.linspace(start_angle, start_angle + 360, n_frames, endpoint=False)
 ):
-
     azimuth = np.radians(azimuth_deg)
 
     x = center[0] + radius * np.cos(azimuth) * np.cos(elevation)
@@ -199,10 +140,7 @@ for i, azimuth_deg in enumerate(
     plotter.camera.up = (0, 0, 1)
 
     plotter.render()
-
-    plotter.screenshot(
-        os.path.join(frame_dir, f"frame_{i:04d}.png")
-    )
+    plotter.screenshot(os.path.join(frame_dir, f"frame_{i:04d}.png"))
 
 plotter.close()
 
