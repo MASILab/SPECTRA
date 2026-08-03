@@ -124,7 +124,7 @@ n_frames = 250
 frame_dir = "json_bone_frames"
 os.makedirs(frame_dir, exist_ok=True)
 
-start_angle = 270
+start_angle = 90
 
 for i, azimuth_deg in enumerate(
     np.linspace(start_angle, start_angle + 360, n_frames, endpoint=False)
