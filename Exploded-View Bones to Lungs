@@ -1,288 +1,181 @@
+import json
 import os
+
 import numpy as np
 import pyvista as pv
 import SimpleITK as sitk
 
 
 seg_file = "data/segmentation_file.nii.gz"
+lut_file = "data/lut.json"
 
-seg_img = sitk.ReadImage(seg_file)
-seg_array = sitk.GetArrayFromImage(seg_img)
+seg_labels_to_keep = (
+    [10, 11, 12, 13, 14, 16]
+    + list(range(32, 44))
+    + list(range(92, 118))
+)
 
-spacing = np.array(seg_img.GetSpacing(), dtype=float)
-origin = np.array(seg_img.GetOrigin(), dtype=float)
-
-direction_matrix = np.array(
-    seg_img.GetDirection(),
-    dtype=float
-).reshape(3, 3)
+bone_labels = set(range(32, 44)) | set(range(92, 118))
 
 
-structure_labels = {
-    32: "vertebrae_T12",
-    33: "vertebrae_T11",
-    34: "vertebrae_T10",
-    35: "vertebrae_T9",
-    36: "vertebrae_T8",
-    37: "vertebrae_T7",
-    38: "vertebrae_T6",
-    39: "vertebrae_T5",
-    40: "vertebrae_T4",
-    41: "vertebrae_T3",
-    42: "vertebrae_T2",
-    43: "vertebrae_T1",
-
-    92: "rib_left_1",
-    93: "rib_left_2",
-    94: "rib_left_3",
-    95: "rib_left_4",
-    96: "rib_left_5",
-    97: "rib_left_6",
-    98: "rib_left_7",
-    99: "rib_left_8",
-    100: "rib_left_9",
-    101: "rib_left_10",
-    102: "rib_left_11",
-    103: "rib_left_12",
-
-    104: "rib_right_1",
-    105: "rib_right_2",
-    106: "rib_right_3",
-    107: "rib_right_4",
-    108: "rib_right_5",
-    109: "rib_right_6",
-    110: "rib_right_7",
-    111: "rib_right_8",
-    112: "rib_right_9",
-    113: "rib_right_10",
-    114: "rib_right_11",
-    115: "rib_right_12",
-
-    116: "sternum",
-    117: "costal_cartilages",
-
-    10: "lung_upper_lobe_left",
-    11: "lung_lower_lobe_left",
-    12: "lung_upper_lobe_right",
-    13: "lung_middle_lobe_right",
-    14: "lung_lower_lobe_right",
-    16: "trachea",
-}
+with open(lut_file, "r", encoding="utf-8") as f:
+    lut = json.load(f)
 
 
-colors = {
-    "vertebrae_T12": [200, 185, 138],
-    "vertebrae_T11": [200, 185, 138],
-    "vertebrae_T10": [200, 185, 138],
-    "vertebrae_T9": [200, 185, 138],
-    "vertebrae_T8": [200, 185, 138],
-    "vertebrae_T7": [200, 185, 138],
-    "vertebrae_T6": [200, 185, 138],
-    "vertebrae_T5": [200, 185, 138],
-    "vertebrae_T4": [200, 185, 138],
-    "vertebrae_T3": [200, 185, 138],
-    "vertebrae_T2": [200, 185, 138],
-    "vertebrae_T1": [200, 185, 138],
+def get_lut_entry(label):
+    """Return and validate one label's name, RGB color, and opacity."""
+    entry = lut.get(str(label))
+    if entry is None:
+        raise KeyError(f"Label {label} is missing from {lut_file}")
 
-    "rib_left_1": [222, 205, 170],
-    "rib_left_2": [222, 205, 170],
-    "rib_left_3": [222, 205, 170],
-    "rib_left_4": [222, 205, 170],
-    "rib_left_5": [222, 205, 170],
-    "rib_left_6": [222, 205, 170],
-    "rib_left_7": [222, 205, 170],
-    "rib_left_8": [222, 205, 170],
-    "rib_left_9": [222, 205, 170],
-    "rib_left_10": [222, 205, 170],
-    "rib_left_11": [222, 205, 170],
-    "rib_left_12": [222, 205, 170],
-
-    "rib_right_1": [222, 205, 170],
-    "rib_right_2": [222, 205, 170],
-    "rib_right_3": [222, 205, 170],
-    "rib_right_4": [222, 205, 170],
-    "rib_right_5": [222, 205, 170],
-    "rib_right_6": [222, 205, 170],
-    "rib_right_7": [222, 205, 170],
-    "rib_right_8": [222, 205, 170],
-    "rib_right_9": [222, 205, 170],
-    "rib_right_10": [222, 205, 170],
-    "rib_right_11": [222, 205, 170],
-    "rib_right_12": [222, 205, 170],
-
-    "sternum": [240, 235, 220],
-    "costal_cartilages": [190, 240, 240],
-
-    "lung_upper_lobe_left": [159, 223, 250],
-    "lung_lower_lobe_left": [80, 200, 255],
-    "lung_upper_lobe_right": [120, 170, 255],
-    "lung_middle_lobe_right": [40, 130, 220],
-    "lung_lower_lobe_right": [10, 70, 170],
-    "trachea": [0, 190, 210],
-}
-
-
-bone_names = {
-    name
-    for label, name in structure_labels.items()
+    rgb = entry.get("rgb")
     if (
-        32 <= label <= 43
-        or 92 <= label <= 117
-    )
-}
+        not isinstance(rgb, list)
+        or len(rgb) != 3
+        or any(not isinstance(value, (int, float)) for value in rgb)
+        or any(value < 0 or value > 255 for value in rgb)
+    ):
+        raise ValueError(f"Label {label} has an invalid RGB value: {rgb!r}")
+
+    opacity = float(entry.get("opacity", 1.0))
+    if not 0.0 <= opacity <= 1.0:
+        raise ValueError(f"Label {label} has invalid opacity: {opacity}")
+
+    name = entry.get("structure", f"Label {label}")
+    return name, np.asarray(rgb, dtype=np.uint8), opacity
 
 
-meshes_by_name = {}
+def load_source(path, labels, source_name):
+    image = sitk.ReadImage(path)
+    array = sitk.GetArrayFromImage(image)
+    direction = np.asarray(image.GetDirection(), dtype=float).reshape(3, 3)
 
-for label, name in structure_labels.items():
-
-    print("Processing", name)
-
-    mask_zyx = (seg_array == label).astype(np.uint8)
-
-    if mask_zyx.sum() == 0:
-        print("  missing")
-        continue
-
-    mask_xyz = np.transpose(mask_zyx, (2, 1, 0))
-
-    grid = pv.ImageData()
-
-    grid.dimensions = np.array(mask_xyz.shape) + 1
-    grid.spacing = spacing
-    grid.origin = origin
-
-    grid.direction_matrix = direction_matrix
-
-    grid.cell_data["mask"] = mask_xyz.ravel(order="F")
-
-    grid = grid.cell_data_to_point_data()
-
-    surface = grid.contour(
-        isosurfaces=[0.5],
-        scalars="mask"
-    )
-
-    if surface.n_points == 0:
-        print("  empty surface")
-        continue
-
-    surface = surface.smooth(
-        n_iter=200,
-        relaxation_factor=0.05
-    )
-
-    rgb = np.tile(
-        np.array(colors[name], dtype=np.uint8),
-        (surface.n_points, 1)
-    )
-
-    surface.point_data["RGB"] = rgb
-
-    meshes_by_name[name] = surface
-
-    print("  points:", surface.n_points)
+    return {
+        "name": source_name,
+        "array": array,
+        "labels": labels,
+        "spacing": np.asarray(image.GetSpacing(), dtype=float),
+        "origin": np.asarray(image.GetOrigin(), dtype=float),
+        "direction": direction,
+    }
 
 
-if not meshes_by_name:
-    raise RuntimeError(
-        "No meshes were generated. Check the segmentation path and labels."
-    )
+sources = [
+    load_source(seg_file, seg_labels_to_keep, "segmentation"),
+]
 
+meshes_by_label = {}
+
+for source in sources:
+    for label in source["labels"]:
+        name, color, opacity = get_lut_entry(label)
+        print(f'Processing {source["name"]} label {label}: {name}')
+
+        mask_zyx = (source["array"] == label).astype(np.uint8)
+
+        if mask_zyx.sum() == 0:
+            print("  missing")
+            continue
+
+        mask_xyz = np.transpose(mask_zyx, (2, 1, 0))
+
+        grid = pv.ImageData()
+        grid.dimensions = np.asarray(mask_xyz.shape) + 1
+        grid.spacing = source["spacing"]
+        grid.origin = source["origin"]
+        grid.direction_matrix = source["direction"]
+        grid.cell_data["mask"] = mask_xyz.ravel(order="F")
+        grid = grid.cell_data_to_point_data()
+
+        surface = grid.contour(isosurfaces=[0.5], scalars="mask")
+
+        if surface.n_points == 0:
+            print("  empty surface")
+            continue
+
+        surface = surface.smooth(n_iter=200, relaxation_factor=0.05)
+        surface.point_data["RGB"] = np.tile(color, (surface.n_points, 1))
+
+        meshes_by_label[label] = {
+            "name": name,
+            "opacity": opacity,
+            "mesh": surface,
+        }
+
+        print("  points:", surface.n_points)
+
+if not meshes_by_label:
+    raise RuntimeError("No meshes were generated. Check the input paths and labels.")
 
 models = pv.MultiBlock()
+for item in meshes_by_label.values():
+    models.append(item["mesh"])
 
-for mesh in meshes_by_name.values():
-    models.append(mesh)
-
-bounds = models.bounds
-
-center = np.array([
-    (bounds[0] + bounds[1]) / 2.0,
-    (bounds[2] + bounds[3]) / 2.0,
-    (bounds[4] + bounds[5]) / 2.0,
-])
+bounds = np.asarray(models.bounds)
+center = np.array(
+    [
+        (bounds[0] + bounds[1]) / 2.0,
+        (bounds[2] + bounds[3]) / 2.0,
+        (bounds[4] + bounds[5]) / 2.0,
+    ]
+)
 
 print("Scene center:", center)
 
-
-centroids = {}
-
-for name, mesh in meshes_by_name.items():
-
-    if name in bone_names:
-        centroids[name] = np.array(mesh.center, dtype=float)
-
-        print(
-            f"{name} centroid: "
-            f"x={centroids[name][0]:.2f}, "
-            f"y={centroids[name][1]:.2f}, "
-            f"z={centroids[name][2]:.2f}"
-        )
-
-
 directions = {}
 
-for name, centroid in centroids.items():
+for label, item in meshes_by_label.items():
+    if label not in bone_labels:
+        continue
 
+    centroid = np.asarray(item["mesh"].center, dtype=float)
     vector = centroid - center
     vector_length = np.linalg.norm(vector)
 
     if vector_length == 0:
-        directions[name] = np.zeros(3)
+        directions[label] = np.zeros(3)
     else:
-        directions[name] = vector / vector_length
+        directions[label] = vector / vector_length
 
+    print(
+        f'{item["name"]} centroid: '
+        f"x={centroid[0]:.2f}, y={centroid[1]:.2f}, z={centroid[2]:.2f}"
+    )
 
 plotter = pv.Plotter(
     lighting="none",
     window_size=(1000, 1000),
-    off_screen=True
+    off_screen=True,
 )
 
 plotter.set_background("white")
+plotter.add_light(pv.Light(light_type="headlight"))
 
-light = pv.Light(
-    light_type="headlight"
-)
-
-plotter.add_light(light)
-
-
-frame_dir = "exploding_bones_to_lungs_frames"
-
-os.makedirs(
-    frame_dir,
-    exist_ok=True
-)
-
+frame_dir = "json_exploding_bones_lungs_frames"
+os.makedirs(frame_dir, exist_ok=True)
 
 bone_actors = {}
 
-for name, mesh in meshes_by_name.items():
-
-    if name in bone_names:
-
+for label, item in meshes_by_label.items():
+    if label in bone_labels:
         actor = plotter.add_mesh(
-            mesh.copy(),
+            item["mesh"].copy(),
             scalars="RGB",
             rgb=True,
             smooth_shading=True,
-            opacity=0.99
+            opacity=min(item["opacity"], 0.99),
+            name=f'{label}: {item["name"]}',
         )
-
-        bone_actors[name] = actor
-
+        bone_actors[label] = actor
     else:
-
         plotter.add_mesh(
-            mesh,
+            item["mesh"],
             scalars="RGB",
             rgb=True,
             smooth_shading=True,
-            opacity=1.0
+            opacity=item["opacity"],
+            name=f'{label}: {item["name"]}',
         )
-
 
 n_frames = 250
 max_distance = 250.0
@@ -295,100 +188,44 @@ radius = max(
 
 elevation = np.radians(30)
 
-
 for i in range(n_frames):
-
     half_frames = n_frames // 2
 
     if i <= half_frames:
-
-        distance = (
-            max_distance
-            * i
-            / half_frames
-        )
-
+        distance = max_distance * i / half_frames
     else:
-
-        distance = (
-            max_distance
-            * (n_frames - i)
-            / half_frames
-        )
+        distance = max_distance * (n_frames - i) / half_frames
 
     normalized_distance = distance / max_distance
-
-    opacity = 1.0 - (
+    fade = 1.0 - (
         6.0 * normalized_distance**5
         - 15.0 * normalized_distance**4
         + 10.0 * normalized_distance**3
     )
+    fade = float(np.clip(fade, 0.0, 0.99))
 
-    opacity = np.clip(opacity, 0.0, 0.99)
+    for label, actor in bone_actors.items():
+        offset = directions[label] * distance
+        actor.SetPosition(float(offset[0]), float(offset[1]), float(offset[2]))
 
-    for name, actor in bone_actors.items():
+        lut_opacity = meshes_by_label[label]["opacity"]
+        actor.GetProperty().SetOpacity(float(min(lut_opacity, 0.99) * fade))
 
-        offset = directions[name] * distance
+    angle = np.radians(90.0 + (i / n_frames) * 360.0)
 
-        actor.SetPosition(
-            float(offset[0]),
-            float(offset[1]),
-            float(offset[2])
-        )
+    x = center[0] + radius * np.cos(angle) * np.cos(elevation)
+    y = center[1] + radius * np.sin(angle) * np.cos(elevation)
+    z = center[2] + radius * np.sin(elevation)
 
-        actor.GetProperty().SetOpacity(
-            float(opacity)
-        )
-
-    angle = np.radians(
-        90.0 + (i / n_frames) * 360.0
-    )
-
-    x = (
-        center[0]
-        + radius
-        * np.cos(angle)
-        * np.cos(elevation)
-    )
-
-    y = (
-        center[1]
-        + radius
-        * np.sin(angle)
-        * np.cos(elevation)
-    )
-
-    z = (
-        center[2]
-        + radius
-        * np.sin(elevation)
-    )
-
-    plotter.camera.position = (
-        float(x),
-        float(y),
-        float(z)
-    )
-
+    plotter.camera.position = (float(x), float(y), float(z))
     plotter.camera.focal_point = tuple(center)
-
-    plotter.camera.up = (
-        0,
-        0,
-        1
-    )
+    plotter.camera.up = (0, 0, 1)
 
     plotter.render()
 
-    frame_path = os.path.join(
-        frame_dir,
-        f"frame_{i:04d}.png"
-    )
-
+    frame_path = os.path.join(frame_dir, f"frame_{i:04d}.png")
     plotter.screenshot(frame_path)
-
     print(f"Saved frame {i + 1}/{n_frames}")
-
 
 plotter.close()
 
