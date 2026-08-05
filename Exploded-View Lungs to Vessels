@@ -1,255 +1,300 @@
+import json
 import os
+
 import numpy as np
 import pyvista as pv
 import SimpleITK as sitk
 
+
 vessel_file = "data/vessels.nii.gz"
 seg_file = "data/segmentation_file.nii.gz"
+lut_file = "data/lut.json"
+
+
+labels_to_keep = [
+    10,
+    11,
+    12,
+    13,
+    14,
+
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60,
+    62,
+    63,
+]
+
+
+vessel_file_labels = {
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+}
+
+
+exploding_labels = {
+    10,
+    11,
+    12,
+    13,
+    14,
+}
+
+
+centroids = {
+    10: np.array([79.38, 546.64, 22.51]),
+    11: np.array([79.01, 498.79, -40.45]),
+    12: np.array([-64.43, 548.49, 46.06]),
+    13: np.array([-61.65, 589.82, -39.87]),
+    14: np.array([-75.32, 521.02, -45.13]),
+}
+
 
 vessel_img = sitk.ReadImage(vessel_file)
 seg_img = sitk.ReadImage(seg_file)
 
-vessel_array = sitk.GetArrayFromImage(vessel_img)
-seg_array = sitk.GetArrayFromImage(seg_img)
-
-spacing = vessel_img.GetSpacing()
-origin = vessel_img.GetOrigin()
-
-structure_labels = {
-    (seg_file, 10): "lung_upper_lobe_left",
-    (seg_file, 11): "lung_lower_lobe_left",
-    (seg_file, 12): "lung_upper_lobe_right",
-    (seg_file, 13): "lung_middle_lobe_right",
-    (seg_file, 14): "lung_lower_lobe_right",
-
-    (seg_file, 52): "aorta",
-    (seg_file, 53): "pulmonary_vein",
-    (seg_file, 54): "brachiocephalic_trunk",
-    (seg_file, 55): "subclavian_artery_right",
-    (seg_file, 56): "subclavian_artery_left",
-    (seg_file, 57): "common_carotid_artery_right",
-    (seg_file, 58): "common_carotid_artery_left",
-    (seg_file, 59): "brachiocephalic_vein_left",
-    (seg_file, 60): "brachiocephalic_vein_right",
-    (seg_file, 62): "superior_vena_cava",
-    (seg_file, 63): "inferior_vena_cava",
-
-    (vessel_file, 44): "heart_myocardium",
-    (vessel_file, 45): "heart_atrium_left",
-    (vessel_file, 46): "heart_ventricle_left",
-    (vessel_file, 47): "heart_atrium_right",
-    (vessel_file, 48): "heart_ventricle_right",
-    (vessel_file, 49): "pulmonary_artery",
+image_data = {
+    vessel_file: {
+        "array": sitk.GetArrayFromImage(vessel_img),
+        "spacing": vessel_img.GetSpacing(),
+        "origin": vessel_img.GetOrigin(),
+    },
+    seg_file: {
+        "array": sitk.GetArrayFromImage(seg_img),
+        "spacing": seg_img.GetSpacing(),
+        "origin": seg_img.GetOrigin(),
+    },
 }
 
-colors = {
-    "lung_upper_lobe_left": [159,223,250],
-    "lung_lower_lobe_left": [80,200,255],
-    "lung_upper_lobe_right": [120,170,255],
-    "lung_middle_lobe_right": [40,130,220],
-    "lung_lower_lobe_right": [10,70,170],
 
-    "heart_myocardium": [180, 30, 45],
-    "heart_atrium_left": [165, 55, 80],
-    "heart_ventricle_left": [150, 15, 35],
-    "heart_atrium_right": [195, 65, 85],
-    "heart_ventricle_right": [205, 45, 60],
+with open(lut_file, "r", encoding="utf-8") as f:
+    lut = json.load(f)
 
-    "aorta": [220, 20, 60],
 
-    "pulmonary_artery": [230, 80, 50],
-    "pulmonary_vein": [205, 70, 90],
+def get_lut_entry(label):
+    """
+    Read and validate the structure name, RGB color,
+    and opacity for a segmentation label.
+    """
 
-    "brachiocephalic_trunk": [215, 55, 55],
+    entry = lut.get(str(label))
 
-    "subclavian_artery_right": [210, 45, 45],
-    "subclavian_artery_left": [210, 45, 45],
+    if entry is None:
+        raise KeyError(
+            f"Label {label} is missing from {lut_file}"
+        )
 
-    "common_carotid_artery_right": [225, 45, 45],
-    "common_carotid_artery_left": [225, 45, 45],
+    structure_name = entry.get(
+        "structure",
+        f"Label {label}",
+    )
 
-    "brachiocephalic_vein_left": [90, 140, 220],
-    "brachiocephalic_vein_right": [90, 140, 220],
+    rgb = entry.get("rgb")
 
-    "superior_vena_cava": [45, 95, 190],
-    "inferior_vena_cava": [30, 75, 170],
-}
+    if (
+        not isinstance(rgb, list)
+        or len(rgb) != 3
+        or any(
+            not isinstance(value, (int, float))
+            for value in rgb
+        )
+        or any(value < 0 or value > 255 for value in rgb)
+    ):
+        raise ValueError(
+            f"Label {label} has an invalid RGB value: {rgb!r}"
+        )
 
-opacities = {
-    "heart_myocardium": 0.8,
-    "heart_atrium_left": 0.8,
-    "heart_ventricle_left": 0.8,
-    "heart_atrium_right": 0.8,
-    "heart_ventricle_right": 0.8,
-}
+    opacity = float(entry.get("opacity", 1.0))
 
-centroids = {
-    "lung_upper_lobe_left":
-        np.array([79.38,546.64,22.51]),
-    "lung_lower_lobe_left":
-        np.array([79.01,498.79,-40.45]),
-    "lung_upper_lobe_right":
-        np.array([-64.43,548.49,46.06]),
-    "lung_middle_lobe_right":
-        np.array([-61.65,589.82,-39.87]),
-    "lung_lower_lobe_right":
-        np.array([-75.32,521.02,-45.13]),
-}
+    if not 0.0 <= opacity <= 1.0:
+        raise ValueError(
+            f"Label {label} has invalid opacity: {opacity}"
+        )
 
-models = pv.MultiBlock()
+    color = np.asarray(rgb, dtype=np.uint8)
 
-for (file,label), name in structure_labels.items():
+    return structure_name, color, opacity
 
-    print("Processing", name)
 
-    if file == vessel_file:
-        array = vessel_array
+structures = []
+
+for label in labels_to_keep:
+
+    if label in vessel_file_labels:
+        source_file = vessel_file
     else:
-        array = seg_array
+        source_file = seg_file
+
+    name, color, opacity = get_lut_entry(label)
+
+    print(f"Processing label {label}: {name}")
+
+    source = image_data[source_file]
+
+    array = source["array"]
+    spacing = source["spacing"]
+    origin = source["origin"]
 
     mask = (array == label).astype(np.uint8)
 
     if mask.sum() == 0:
-        print("missing")
+        print(f"  Label not found in {source_file}.")
         continue
 
-    mask = np.transpose(mask,(2,1,0))
+    mask = np.transpose(mask, (2, 1, 0))
 
     grid = pv.ImageData()
-
-    grid.dimensions = np.array(mask.shape)+1
+    grid.dimensions = np.asarray(mask.shape) + 1
     grid.spacing = spacing
     grid.origin = origin
 
     grid.cell_data["mask"] = mask.ravel(order="F")
-
     grid = grid.cell_data_to_point_data()
 
     surface = grid.contour(
         isosurfaces=[0.5],
-        scalars="mask"
+        scalars="mask",
     )
 
     if surface.n_points == 0:
+        print("  No surface could be generated.")
         continue
 
     surface = surface.smooth(
         n_iter=200,
-        relaxation_factor=0.05
+        relaxation_factor=0.05,
     )
 
-    rgb = np.tile(
-        np.array(colors[name],dtype=np.uint8),
-        (surface.n_points,1)
+    surface.point_data["RGB"] = np.tile(
+        color,
+        (surface.n_points, 1),
     )
 
-    surface.point_data["RGB"] = rgb
+    structures.append(
+        {
+            "label": label,
+            "name": name,
+            "opacity": opacity,
+            "surface": surface,
+        }
+    )
 
-    models.append(surface)
 
-bounds = models.bounds
+if not structures:
+    raise RuntimeError(
+        "None of the labels in labels_to_keep were found."
+    )
 
-center = np.array([
 
-    (bounds[0]+bounds[1])/2,
-    (bounds[2]+bounds[3])/2,
-    (bounds[4]+bounds[5])/2
+models = pv.MultiBlock()
 
-])
+for item in structures:
+    models.append(item["surface"])
 
-print("Scene center:",center)
+bounds = np.asarray(models.bounds)
+
+center = np.array(
+    [
+        (bounds[0] + bounds[1]) / 2,
+        (bounds[2] + bounds[3]) / 2,
+        (bounds[4] + bounds[5]) / 2,
+    ]
+)
+
+print("Scene center:", center)
+
 
 directions = {}
 
-for name,c in centroids.items():
+for label, centroid in centroids.items():
 
-    vec = c-center
+    if label not in exploding_labels:
+        continue
 
-    vec = vec / np.linalg.norm(vec)
+    direction = centroid - center
+    magnitude = np.linalg.norm(direction)
 
-    directions[name] = vec
+    if magnitude == 0:
+        raise ValueError(
+            f"Centroid for label {label} is equal to the scene center."
+        )
 
-original_meshes = {}
+    directions[label] = direction / magnitude
 
-for name,mesh in zip(structure_labels.values(),models):
-
-    if name in centroids:
-
-        original_meshes[name] = mesh.copy()
 
 plotter = pv.Plotter(
     lighting="none",
-    window_size=(1000,1000),
-    off_screen=True
+    window_size=(1000, 1000),
+    off_screen=True,
 )
 
-light = pv.Light(
-    light_type="headlight"
-)
-
+light = pv.Light(light_type="headlight")
 plotter.add_light(light)
 
-frame_dir="exploding_lungs_to_vessels_frames"
-
-os.makedirs(
-    frame_dir,
-    exist_ok=True
-)
 
 actors = {}
 
-dissolve_values = {}
+for item in structures:
 
-for name, mesh in original_meshes.items():
-
-    if name in centroids:
-
-        dissolve_values[name] = np.random.random(
-            mesh.n_points
-        )
-
-for name, mesh in original_meshes.items():
+    label = item["label"]
+    name = item["name"]
+    mesh = item["surface"]
+    lut_opacity = item["opacity"]
 
     actor = plotter.add_mesh(
         mesh,
         scalars="RGB",
         rgb=True,
-        smooth_shading=True
+        smooth_shading=True,
+        opacity=lut_opacity,
+        name=f"{label}: {name}",
     )
 
-    actors[name] = actor
-
-dissolve_masks = {}
-
-
-for name, mesh in zip(
-    structure_labels.values(),
-    models
-):
-
-    if name not in centroids:
-
-        plotter.add_mesh(
-            mesh,
-            scalars="RGB",
-            rgb=True,
-            smooth_shading=True,
-            opacity=opacities.get(name,1.0)
-   )
+    if label in exploding_labels:
+        actors[label] = {
+            "actor": actor,
+            "name": name,
+            "lut_opacity": lut_opacity,
+        }
 
 
+missing_exploding_labels = exploding_labels.difference(actors)
+
+if missing_exploding_labels:
+    print(
+        "Warning: these exploding labels were not found:",
+        sorted(missing_exploding_labels),
+    )
+
+
+frame_dir = "json_exploding_lungs_vessels_frames"
+os.makedirs(frame_dir, exist_ok=True)
 
 n_frames = 250
-
 max_distance = 250
 
-
 radius = max(
-    bounds[1]-bounds[0],
-    bounds[3]-bounds[2],
-    bounds[5]-bounds[4],
+    bounds[1] - bounds[0],
+    bounds[3] - bounds[2],
+    bounds[5] - bounds[4],
 ) * 2.5
-
 
 elevation = np.radians(30)
 
@@ -259,84 +304,83 @@ for i in range(n_frames):
     half_frames = n_frames // 2
 
     if i <= half_frames:
-
-        distance = (
-            max_distance *
-            (i / half_frames)
-        )
-
+        distance = max_distance * (i / half_frames)
     else:
-
-        distance = (
-            max_distance *
-            ((n_frames - i) / half_frames)
+        distance = max_distance * (
+            (n_frames - i) / half_frames
         )
 
+    progress = distance / max_distance
 
-    d = distance / max_distance
+    fade_opacity = 1 - (
+        6 * progress**5
+        - 15 * progress**4
+        + 10 * progress**3
+    )
 
-    opacity = 1 - (6*d**5 - 15*d**4 + 10*d**3)
+    for label, actor_data in actors.items():
 
-    for name, actor in actors.items():
-
-        if name not in centroids:
+        if label not in directions:
             continue
 
-        offset = directions[name] * distance
+        actor = actor_data["actor"]
+        lut_opacity = actor_data["lut_opacity"]
+
+        offset = directions[label] * distance
 
         actor.SetPosition(
             offset[0],
             offset[1],
-            offset[2]
+            offset[2],
         )
 
-        actor.GetProperty().SetOpacity(min(opacity, 0.99))
+        final_opacity = lut_opacity * fade_opacity
+
+        actor.GetProperty().SetOpacity(
+            min(final_opacity, 0.99)
+        )
 
     angle = np.radians(
-        270 + (i/n_frames)*360
+        270 + (i / n_frames) * 360
     )
 
     x = (
         center[0]
-        +
-        radius*np.cos(angle)*np.cos(elevation)
+        + radius
+        * np.cos(angle)
+        * np.cos(elevation)
     )
 
     y = (
         center[1]
-        +
-        radius*np.sin(angle)*np.cos(elevation)
+        + radius
+        * np.sin(angle)
+        * np.cos(elevation)
     )
 
     z = (
         center[2]
-        +
-        radius*np.sin(elevation)
+        + radius
+        * np.sin(elevation)
     )
 
-    plotter.camera.position = (
-        x,
-        y,
-        z
-    )
-
+    plotter.camera.position = (x, y, z)
     plotter.camera.focal_point = center
-
-    plotter.camera.up = (
-        0,
-        0,
-        1
-    )
+    plotter.camera.up = (0, 0, 1)
 
     plotter.render()
 
     plotter.screenshot(
         os.path.join(
             frame_dir,
-            f"frame_{i:04d}.png"
+            f"frame_{i:04d}.png",
         )
     )
 
+
 plotter.close()
 
-print("Saved exploded lung-to-vessel animation frames.")
+print(
+    f"Saved exploded lung-to-vessel animation frames "
+    f"to {frame_dir}/"
+)
