@@ -5,8 +5,8 @@
     "opacity": 1,
     "rgb": [
       0,
-      125,
-      155
+      160,
+      195
     ],
     "hex": "#007D9B",
     "rationale": "Dark teal represents the deeper, smaller air-filled bronchioles and creates a natural progression from the brighter central airways."
@@ -17,8 +17,8 @@
     "opacity": 1,
     "rgb": [
       0,
-      165,
-      185
+      95,
+      145
     ],
     "hex": "#00A5B9",
     "rationale": "Medium teal represents the air-conducting main bronchi and visually bridges the bright cyan trachea with the darker distal bronchioles."
