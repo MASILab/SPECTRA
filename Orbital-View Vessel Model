@@ -1,12 +1,45 @@
+import json
 import os
+
 import numpy as np
 import pyvista as pv
 import SimpleITK as sitk
 
-ct_file = "data/ct_scan.nii.gz"
 
 vessel_file = "data/vessels.nii.gz"
 seg_file = "data/segmentation_file.nii.gz"
+lut_file = "data/lut.json"
+
+
+labels_to_keep = [
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60,
+    62,
+    63,
+]
+
+
+vessel_file_labels = {
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+}
 
 
 vessel_img = sitk.ReadImage(vessel_file)
@@ -15,212 +48,220 @@ seg_img = sitk.ReadImage(seg_file)
 vessel_array = sitk.GetArrayFromImage(vessel_img)
 seg_array = sitk.GetArrayFromImage(seg_img)
 
-spacing = vessel_img.GetSpacing()
-origin = vessel_img.GetOrigin()
 
-
-vessel_labels = {
-
-    (seg_file, 52): "aorta",
-    (seg_file, 53): "pulmonary_vein",
-    (seg_file, 54): "brachiocephalic_trunk",
-    (seg_file, 55): "subclavian_artery_right",
-    (seg_file, 56): "subclavian_artery_left",
-    (seg_file, 57): "common_carotid_artery_right",
-    (seg_file, 58): "common_carotid_artery_left",
-    (seg_file, 59): "brachiocephalic_vein_left",
-    (seg_file, 60): "brachiocephalic_vein_right",
-    (seg_file, 62): "superior_vena_cava",
-    (seg_file, 63): "inferior_vena_cava",
-
-    (vessel_file, 44): "heart_myocardium",
-    (vessel_file, 45): "heart_atrium_left",
-    (vessel_file, 46): "heart_ventricle_left",
-    (vessel_file, 47): "heart_atrium_right",
-    (vessel_file, 48): "heart_ventricle_right",
-    (vessel_file, 49): "pulmonary_artery",
+image_data = {
+    vessel_file: {
+        "array": vessel_array,
+        "spacing": vessel_img.GetSpacing(),
+        "origin": vessel_img.GetOrigin(),
+    },
+    seg_file: {
+        "array": seg_array,
+        "spacing": seg_img.GetSpacing(),
+        "origin": seg_img.GetOrigin(),
+    },
 }
 
 
-colors = {
-
-    "heart_myocardium": [180, 30, 45],
-    "heart_atrium_left": [165, 55, 80],
-    "heart_ventricle_left": [150, 15, 35],
-    "heart_atrium_right": [195, 65, 85],
-    "heart_ventricle_right": [205, 45, 60],
-
-    "aorta": [220, 20, 60],
-
-    "pulmonary_artery": [230, 80, 50],
-    "pulmonary_vein": [205, 70, 90],
-
-    "brachiocephalic_trunk": [215, 55, 55],
-
-    "subclavian_artery_right": [210, 45, 45],
-    "subclavian_artery_left": [210, 45, 45],
-
-    "common_carotid_artery_right": [225, 45, 45],
-    "common_carotid_artery_left": [225, 45, 45],
-
-    "brachiocephalic_vein_left": [90, 140, 220],
-    "brachiocephalic_vein_right": [90, 140, 220],
-
-    "superior_vena_cava": [45, 95, 190],
-    "inferior_vena_cava": [30, 75, 170],
-}
+with open(lut_file, "r", encoding="utf-8") as f:
+    lut = json.load(f)
 
 
-models = pv.MultiBlock()
+def get_lut_entry(label):
+    """
+    Get the structure name, RGB color, and opacity for a label.
+    """
+
+    entry = lut.get(str(label))
+
+    if entry is None:
+        raise KeyError(
+            f"Label {label} is missing from {lut_file}"
+        )
+
+    structure_name = entry.get(
+        "structure",
+        f"Label {label}",
+    )
+
+    rgb = entry.get("rgb")
+
+    if (
+        not isinstance(rgb, list)
+        or len(rgb) != 3
+        or any(
+            not isinstance(value, (int, float))
+            for value in rgb
+        )
+        or any(value < 0 or value > 255 for value in rgb)
+    ):
+        raise ValueError(
+            f"Label {label} has an invalid RGB value: {rgb!r}"
+        )
+
+    opacity = float(entry.get("opacity", 1.0))
+
+    if not 0.0 <= opacity <= 1.0:
+        raise ValueError(
+            f"Label {label} has invalid opacity: {opacity}"
+        )
+
+    color = np.asarray(rgb, dtype=np.uint8)
+
+    return structure_name, color, opacity
 
 
-for (file, label), name in vessel_labels.items():
+surfaces = []
 
-    print(f"Processing {name}")
+for label in labels_to_keep:
 
-    if file == vessel_file:
-        array = vessel_array
+    if label in vessel_file_labels:
+        source_file = vessel_file
     else:
-        array = seg_array
+        source_file = seg_file
 
+    name, color, opacity = get_lut_entry(label)
+
+    print(f"Processing label {label}: {name}")
+
+    source = image_data[source_file]
+    array = source["array"]
+    spacing = source["spacing"]
+    origin = source["origin"]
 
     mask = (array == label).astype(np.uint8)
 
-
     if mask.sum() == 0:
-        print("  missing")
+        print(f"  Label not found in {source_file}.")
         continue
 
-
-    mask = np.transpose(mask, (2,1,0))
-
+    mask = np.transpose(mask, (2, 1, 0))
 
     grid = pv.ImageData()
-
-    grid.dimensions = np.array(mask.shape) + 1
+    grid.dimensions = np.asarray(mask.shape) + 1
     grid.spacing = spacing
     grid.origin = origin
 
-
     grid.cell_data["mask"] = mask.ravel(order="F")
-
     grid = grid.cell_data_to_point_data()
-
 
     surface = grid.contour(
         isosurfaces=[0.5],
-        scalars="mask"
+        scalars="mask",
     )
 
-
     if surface.n_points == 0:
+        print("  No surface could be generated.")
         continue
-
 
     surface = surface.smooth(
         n_iter=200,
-        relaxation_factor=0.05
+        relaxation_factor=0.05,
+    )
+
+    surface.point_data["RGB"] = np.tile(
+        color,
+        (surface.n_points, 1),
+    )
+
+    surfaces.append(
+        {
+            "label": label,
+            "name": name,
+            "opacity": opacity,
+            "surface": surface,
+        }
     )
 
 
-    rgb = np.tile(
-        np.array(colors[name], dtype=np.uint8),
-        (surface.n_points,1)
+if not surfaces:
+    raise RuntimeError(
+        "None of the labels in labels_to_keep were found."
     )
-
-
-    surface.point_data["RGB"] = rgb
-
-  
-    models.append(surface)
 
 
 plotter = pv.Plotter(
     lighting="none",
-    window_size=(1000,1000),
-    off_screen=True
+    window_size=(1000, 1000),
+    off_screen=True,
 )
 
-for i, block in enumerate(models):
-
-    name = list(vessel_labels.values())[i]
-
-    if name in {
-        "heart_myocardium",
-        "heart_atrium_left",
-        "heart_ventricle_left",
-        "heart_atrium_right",
-        "heart_ventricle_right",
-    }:
-        opacity = 0.8
-    else:
-        opacity = 1.0
-
+for item in surfaces:
     plotter.add_mesh(
-        block,
+        item["surface"],
         scalars="RGB",
         rgb=True,
         smooth_shading=True,
-        opacity=opacity
+        opacity=item["opacity"],
+        name=f'{item["label"]}: {item["name"]}',
     )
+
 
 light = pv.Light(light_type="headlight")
 plotter.add_light(light)
 
 
+bounds = np.asarray(plotter.bounds)
 
-bounds = models.bounds
-
-center = np.array([
-    (bounds[0]+bounds[1])/2,
-    (bounds[2]+bounds[3])/2,
-    (bounds[4]+bounds[5])/2,
-])
-
+center = np.array(
+    [
+        (bounds[0] + bounds[1]) / 2,
+        (bounds[2] + bounds[3]) / 2,
+        (bounds[4] + bounds[5]) / 2,
+    ]
+)
 
 radius = max(
-    bounds[1]-bounds[0],
-    bounds[3]-bounds[2],
-    bounds[5]-bounds[4],
+    bounds[1] - bounds[0],
+    bounds[3] - bounds[2],
+    bounds[5] - bounds[4],
 ) * 2.5
 
 
-frame_dir = "vessel_frames"
+frame_dir = "json_vessel_frames"
 os.makedirs(frame_dir, exist_ok=True)
 
-
 n_frames = 250
+start_angle = 270
 elevation = np.radians(30)
 
+angles = np.linspace(
+    start_angle,
+    start_angle + 360,
+    n_frames,
+    endpoint=False,
+)
 
-for i, angle in enumerate(
-    np.linspace(0,360,n_frames,endpoint=False) + 270
-):
+for i, azimuth_deg in enumerate(angles):
 
-    theta = np.radians(angle)
+    azimuth = np.radians(azimuth_deg)
 
+    x = (
+        center[0]
+        + radius * np.cos(azimuth) * np.cos(elevation)
+    )
 
-    x = center[0] + radius*np.cos(theta)*np.cos(elevation)
-    y = center[1] + radius*np.sin(theta)*np.cos(elevation)
-    z = center[2] + radius*np.sin(elevation)
+    y = (
+        center[1]
+        + radius * np.sin(azimuth) * np.cos(elevation)
+    )
 
+    z = center[2] + radius * np.sin(elevation)
 
-    plotter.camera.position = (x,y,z)
+    plotter.camera.position = (x, y, z)
     plotter.camera.focal_point = center
-    plotter.camera.up = (0,0,1)
-
+    plotter.camera.up = (0, 0, 1)
 
     plotter.render()
-
 
     plotter.screenshot(
         os.path.join(
             frame_dir,
-            f"frame_{i:04d}.png"
+            f"frame_{i:04d}.png",
         )
     )
 
 
 plotter.close()
 
-print("Saved vessel frames.")
+print(f"Saved vessel frames to {frame_dir}/")
